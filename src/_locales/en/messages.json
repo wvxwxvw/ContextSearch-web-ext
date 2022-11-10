@@ -2531,5 +2531,8 @@
   },
   "forward": {
     "message": "forward"
+  },
+  "searchActionConflict": {
+    "message": "This setting conflicts with another"
   }
 }

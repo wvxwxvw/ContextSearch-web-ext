@@ -410,17 +410,7 @@ function _saveOptions(e) {
 		let cas = [];
 
 		$("additionalSearchActionsTable").querySelectorAll("TR:not(.template):not(.header)").forEach( tr => {
-			
-			cas.push({
-				event:tr.querySelector('[name="event"]').value,
-				button:parseInt(tr.querySelector('[name="button"]').value),
-				altKey:tr.querySelector('[name="altKey"]').checked,
-				ctrlKey:tr.querySelector('[name="ctrlKey"]').checked,
-				metaKey:tr.querySelector('[name="metaKey"]').checked,
-				shiftKey:tr.querySelector('[name="shiftKey"]').checked,
-				action:tr.querySelector('[name="action"]').value,
-				folder:false
-			})
+			cas.push(additionalSearchActionFromRow(tr));
 		});
 
 		return cas;
@@ -1934,8 +1924,55 @@ function syntaxHighlight(json) {
     });
 }
 
+function additionalSearchActionFromRow(tr) {
+	return {
+		event:tr.querySelector('[name="event"]').value,
+		button:parseInt(tr.querySelector('[name="button"]').value),
+		altKey:tr.querySelector('[name="altKey"]').checked,
+		ctrlKey:tr.querySelector('[name="ctrlKey"]').checked,
+		metaKey:tr.querySelector('[name="metaKey"]').checked,
+		shiftKey:tr.querySelector('[name="shiftKey"]').checked,
+		action:tr.querySelector('[name="action"]').value,
+		folder:false
+	}
+}
+
 function buildAdditionalSearchActionsTable() {
 	let table = $("additionalSearchActionsTable");
+
+	const getRows = () => [...table.querySelectorAll("TR:not(.template):not(.header)")];
+
+	const hasConflict = row => {
+
+		const _compare = (sa1, sa2) => {
+			return ( 
+				sa1.event === sa2.event &&
+				sa1.button === sa2.button &&
+				sa1.altKey === sa2.altKey &&
+				sa1.ctrlKey === sa2.ctrlKey &&
+				sa1.metaKey === sa2.metaKey &&
+				sa1.shiftKey === sa2.shiftKey
+				) 
+		}
+
+		let sa = additionalSearchActionFromRow(row);
+
+		for ( let key in defaultSearchActions ) {
+			if ( _compare(sa, defaultSearchActions[key]) ) return true;
+		}
+
+		for ( tr of getRows() ) {
+			let csa = additionalSearchActionFromRow(tr);
+
+			if ( _compare(sa, csa) && row !== tr ) return true;
+		}
+
+		return false;
+	}
+
+	const setConflictState = row => {
+		row.classList.toggle("conflict", hasConflict(row));
+	}
 
 	const makeNewRow = sa => {
 		let row = table.querySelector(".template").cloneNode(true);
@@ -1955,9 +1992,12 @@ function buildAdditionalSearchActionsTable() {
 			row.parentNode.removeChild(row);
 			saveOptions();
 		}
+
+		row.addEventListener('click', e => getRows().forEach( tr => setConflictState(tr)));
+		setConflictState(row)
 	}
 
-	table.querySelectorAll("TR:not(.template):not(.header)").forEach( tr => tr.parentNode.removeChild(tr));
+	getRows().forEach( tr => tr.parentNode.removeChild(tr));
 	userOptions.customSearchActions.forEach( sa => makeNewRow(sa));
 
 	$('newSearchAction').onclick = function(e) {

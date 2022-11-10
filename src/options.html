@@ -1495,6 +1495,12 @@
 			#additionalSearchActionsTable INPUT, #additionalSearchActionsTable SELECT {
 				width: auto;
 			}
+			#additionalSearchActionsTable TR IMG {
+				height:0;
+			}
+			#additionalSearchActionsTable TR.conflict IMG {
+				height:1em;
+			}
 			.contextualLayoutIcons {
 				background-color: var(--bg-color3);
 				border: 1px solid var(--border-color1);
@@ -2552,7 +2558,7 @@
 					<td data-i18n="Shift">$</td>
 				</tr>
 				<tr class="template">
-					<td></td>
+					<td><img src="icons/alert.svg" title="$searchActionConflict"/></td>
 					<td>
 						<select name="event" class="inputNice">
 							<option value="mouseup" data-i18n="Click">$</option>
