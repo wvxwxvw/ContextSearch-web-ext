@@ -239,7 +239,7 @@ function makeDockable(el, options) {
 				// console.log("dock is " + dist);
 				// console.log("shift by " + shiftBy);
 				
-				 // offsetElement(_el, o.dockedPosition, dist, el.id);
+				// offsetElement(_el, o.dockedPosition, dist, el.id);
 			
 				// rect.right = bodyElement.offsetWidth - rect.right;
 				// rect.bottom = bodyElement.offsetHeight - rect.bottom;

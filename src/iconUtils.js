@@ -139,7 +139,7 @@ async function findFavicons(url) {
 			let _url = new URL(url);
 			hrefs.unshift(_url.origin + "/favicon.ico");
 		} catch(error) {
-		};
+		}
 
 	} catch (error) {
 		console.log(error);
@@ -268,7 +268,7 @@ function addFavIconFinderListener(finder) {
 			});
 		}
 
-		close = e => {
+		const close = e => {
 			overdiv.style.opacity = 0;
 			form.parentNode.classList.remove('blur');
 			runAtTransitionEnd(overdiv, "opacity", () => {

@@ -371,8 +371,11 @@ async function notify(message, sender, sendResponse) {
 
 				let ccs = [...message.currentContexts];
 
+				// image wrapped in link, only use one
 				if ( ccs.includes("image") && ccs.includes("link") ) {
 					ccs = ccs.filter(c => c != (message.ctrlKey ? "image" : "link"));
+
+				// using linkText, remove link context and add selection
 				} else if ( message.linkMethod && message.linkMethod === "text") {
 					ccs = ccs.filter(c => c != "link");
 					if ( !ccs.includes("selection") )
@@ -388,6 +391,7 @@ async function notify(message, sender, sendResponse) {
 
 					let title = i18n("SearchForContext", (message.linkMethod && message.linkMethod === "text" ? i18n("LINKTEXT") : i18n("LINK")).toUpperCase()) + getMenuHotkey();
 
+					// using linkText
 					if ( message.linkMethod && message.linkMethod === "text" ) {
 						await browser.contextMenus.update("selection", {
 							title: title,

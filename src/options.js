@@ -271,12 +271,8 @@ async function restoreOptions(restoreUserOptions) {
 		console.log(`Error: ${error}`);
 	}
 
-	return new Promise( async (resolve, reject) => {
-		await browser.runtime.sendMessage({action: "checkForOneClickEngines"});
-		let uo = await browser.runtime.sendMessage({action: "getUserOptions"});
-		onGot(uo);
-		resolve();
-	});	
+	await browser.runtime.sendMessage({action: "checkForOneClickEngines"});
+	return browser.runtime.sendMessage({action: "getUserOptions"}).then(onGot, onError);
 }
 
 function saveOptions(e) {
@@ -289,6 +285,7 @@ function _saveOptions(e) {
 		browser.browserAction.setIcon({path: userOptions.searchBarIcon || 'icons/logo_notext.svg'});
 		showSaveMessage(i18n("saved"), null, document.getElementById('saveNoticeDiv'));
 		$('configSize').innerText = JSON.stringify(userOptions).length + " bytes";
+		document.dispatchEvent(new CustomEvent('userOptionsSaved'));
 		return Promise.resolve(true);
 	}
 	

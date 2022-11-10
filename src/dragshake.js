@@ -17,7 +17,7 @@ let DragShake = function() {
 
 	this.start = () => {
 		document.addEventListener('dragover', e => {
-		    origin = {x: e.clientX, y: e.clientY}
+			origin = {x: e.clientX, y: e.clientY}
 		}, {once: true});
 
 		document.addEventListener('dragover', this.dragHandler);

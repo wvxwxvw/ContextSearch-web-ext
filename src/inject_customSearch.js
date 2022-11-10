@@ -47,7 +47,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 	if (typeof message.action !== 'undefined') {
 		switch (message.action) {
 
-			case "openCustomSearch":
+			case "openCustomSearch": {
 
 				// if message contains a search engine, use that
 				if ( message.se ) {
@@ -115,7 +115,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 								
 								let input = window.document.querySelector("input:focus,textarea:focus");
 								
-								function inputHandler() {
+								const inputHandler = () => {
 									if (!input.value) return;
 									browser.runtime.sendMessage({action: "executeTestSearch", searchTerms: input.value, badSearchEngine: se});
 								}
@@ -145,10 +145,10 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 				}, {once: true});
 
 				return true;
-				break;
+			}
 			
-			case "closeCustomSearch":
-				var iframe = getShadowRoot().getElementById("CS_customSearchIframe");
+			case "closeCustomSearch": {
+				let iframe = getShadowRoot().getElementById("CS_customSearchIframe");
 				iframe.style.opacity = 0;
 
 				document.body.classList.remove('CS_blur');
@@ -157,6 +157,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 				setTimeout(() => iframe.parentNode.removeChild(iframe), 250);
 				
 				break;
+			}
 				
 		}
 	}

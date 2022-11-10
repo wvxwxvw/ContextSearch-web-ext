@@ -496,10 +496,9 @@ function showNotification(message) {
 	n.style.opacity = 1;
 	n.getBoundingClientRect();
 
-	close = () => {
+	const close = () => {
 		runAtTransitionEnd(n, ['opacity'], () => {
 			document.body.removeChild(n);
-			delete n;
 		});
 		
 		n.style.opacity = 0;
@@ -509,7 +508,6 @@ function showNotification(message) {
 	
 	n.onclick = function() {
 		document.body.removeChild(n);
-		delete n;
 	}
 
 	return n;
