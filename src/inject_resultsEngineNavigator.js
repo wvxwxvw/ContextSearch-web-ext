@@ -35,6 +35,16 @@ const previousResultsEngine = () => {
 	let folder = findNode(userOptions.nodeTree, n => n.id === tt.folderId);
 	let node = findNode(folder, n => n.id === tt.id);
 
+	if ( node.type === 'searchEngine') {
+		node.matchRegex = userOptions.searchEngines.find(se => se.id === node.id).matchRegex;
+	}
+
+	// if regex match
+	if ( node.matchRegex ) {
+		folder = matchingEnginesToFolder(tt.searchTerms);
+		node = findNode(folder, n => n.id === tt.id);
+	}
+
 	let array = [...new Set(folder.children.filter(c => {
 		
 		if ( !["searchEngine", "oneClickSearchEngine"/*, "bookmarklet", "externalProgram"*/].includes(c.type) ) return false;
