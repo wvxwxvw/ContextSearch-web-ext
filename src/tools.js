@@ -607,7 +607,7 @@ const QMtools = [
 		name: 'block', 
 		icon: "icons/block.svg",
 		title: i18n('addtoblocklist'),
-		context: ["quickmenu", "sidebar"],
+		context: ["quickmenu", "sidebar", "searchbar"],
 		init: function() {
 			let tile = buildSearchIcon(null, this.title);
 			tile.appendChild(createMaskIcon(this.icon));
@@ -622,10 +622,28 @@ const QMtools = [
 			let tabInfo = await browser.runtime.sendMessage({action:"getCurrentTabInfo"});
 			let url = new URL(tabInfo.url);
 
+			if ( !url.hostname ) {
+				console.warn("No url for tab");
+				return;
+			}
+
+			// searchbar needs to resize for confirm()
+			if ( type && type === 'searchbar' ) {
+				document.body.style.visibility = 'hidden';
+				document.body.style.width = 'auto';
+				document.body.style.maxWidth = null;				
+				await new Promise(r => setTimeout(r, 100));
+			}
+
 			if ( !userOptions.blockList.includes(url.hostname) && confirm(i18n('addtoblocklistconfirm', url.hostname))) {
 				console.log('adding to blocklist', url.hostname);
 				userOptions.blockList.push(url.hostname);
 				saveUserOptions();
+			}
+
+			if ( type && type === 'searchbar' ) {
+				resizeMenu();
+				document.body.style.visibility = null;
 			}
 		}
 	},
