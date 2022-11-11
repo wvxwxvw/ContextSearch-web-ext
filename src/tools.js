@@ -630,8 +630,9 @@ const QMtools = [
 			// searchbar needs to resize for confirm()
 			if ( type && type === 'searchbar' ) {
 				document.body.style.visibility = 'hidden';
-				document.body.style.width = 'auto';
-				document.body.style.maxWidth = null;				
+				document.body.style.width = '600px';
+				document.body.style.maxWidth = null;
+
 				await new Promise(r => setTimeout(r, 100));
 			}
 
