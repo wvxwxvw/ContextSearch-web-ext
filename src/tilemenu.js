@@ -353,8 +353,6 @@ async function makeQuickMenu(options) {
 	sb.addEventListener('input', e => {
 		quickMenuObject.searchTerms = sb.value;
 		quickMenuObject.searchTermsObject.selection = sb.value;
-	//	browser.runtime.sendMessage({action: "updateSearchTerms", searchTerms: sb.value});
-	//	browser.runtime.sendMessage({action: "updateQuickMenuObject", quickMenuObject: quickMenuObject});
 	});
 
 	sb.addEventListener('keydown', e => {
@@ -390,8 +388,6 @@ async function makeQuickMenu(options) {
 		qm = await quickMenuElementFromNodeTree( qm.rootNode, false );
 
 		resizeMenu({toggleSingleColumn: true, openFolder:true})
-
-//		runAtTransitionEnd(qm, "height", () => resizeMenu({toggleSingleColumn: true}), 100);
 	}
 	
 	qm.addTitleBarTextHandler = div => {
@@ -850,14 +846,9 @@ function buildQuickMenuElement(options) {
 	};
 	
 	qm.setDisplay = () => {
-
 		qm.classList.toggle("singleColumn", qm.singleColumn);
-	//	document.documentElement.style.setProperty('--single-column-width', "300px");
 		qm.querySelectorAll('.tile').forEach( _tile => {
-			// let _sc = (qm.singleColumn || qm.rootNode.displayType === "text" )
-			// _tile.classList.toggle("singleColumn", _sc);
 			_tile.classList.toggle("singleColumn", qm.singleColumn);
-
 		});
 	}
 
@@ -1125,15 +1116,6 @@ async function _quickMenuElementFromNodeTree( o ) {
 
 	});
 
-	// try { // fails on restricted pages
-	// 	await browser.runtime.sendMessage({action: "getTabQuickMenuObject"}).then( qmo => {
-
-	// 		if ( qmo ) quickMenuObject.searchTerms = qmo.searchTerms
-	// 	});
-	// } catch (error) {
-
-	// }
-
 	qm.makeMoreLessFromTiles = makeMoreLessFromTiles;
 
 	makeContextsBar();
@@ -1189,8 +1171,6 @@ function makeSearchBar() {
 
 			aeb.style = null;
 
-		//	runAtTransitionEnd(sg, "height", resizeMenu)
-
 			return;
 		}
 
@@ -1208,16 +1188,12 @@ function makeSearchBar() {
 		displaySuggestions(history);
 	}
 	
-	//browser.runtime.sendMessage({action: "getTabQuickMenuObject"}).then( qmo => {
+	let qmo = quickMenuObject;
 
-		let qmo = quickMenuObject;
+	if ( qmo && (qmo.searchTerms || ( qmo.searchTermsObject && qmo.searchTermsObject.selection ) ))
+		setTimeout(() => sb.set(qmo.searchTerms || qmo.searchTermsObject.selection), 10);
+	else displayLastSearchTerms();
 
-		if ( qmo && (qmo.searchTerms || ( qmo.searchTermsObject && qmo.searchTermsObject.selection ) ))
-			setTimeout(() => sb.set(qmo.searchTerms || qmo.searchTermsObject.selection), 10);
-		else displayLastSearchTerms();
-//	}, () => {
-//		displayLastSearchTerms();
-	//});
 
 	async function displayLastSearchTerms() {
 
@@ -1246,23 +1222,10 @@ function makeSearchBar() {
 
 		if ( userOptions.quickMenuSearchBarSelect )
 			window.addEventListener('focus', e => sb.select(), {once: true});
-		//sb.select();
-
-		// workaround for linux 
-		// var selectInterval = setInterval( () => {
-
-		// 	if (getSelectedText(sb) == sb.value)
-		// 		clearInterval(selectInterval);
-		// 	else
-		// 		sb.select();
-		// }, 50);
 	}
 	
 	function displaySuggestions(suggestions) {
-		
-		// losing keystrokes. Why was this used?
-	//	browser.runtime.sendMessage({action: "updateSearchTerms", searchTerms: sb.value});
-				
+			
 		suggestions = suggestions.sort(function(a,b) {
 			return a.searchTerms - b.searchTerms;
 		});
@@ -1410,7 +1373,6 @@ function makeSearchBar() {
 
 		if ( !div ) return;
 
-	//	let qmo = await browser.runtime.sendMessage({action:"getTabQuickMenuObject"});
 		let qmo = quickMenuObject;
 		let sto = qmo.searchTermsObject;
 
@@ -2091,7 +2053,7 @@ undraggable = el => {
 }
 
 undroppable = el => {
-	return el.dataset.undroppable === "true" || isSpecialFolderChild(el);;
+	return el.dataset.undroppable === "true" || isSpecialFolderChild(el);
 }
 
 clearDragStyling = el => {

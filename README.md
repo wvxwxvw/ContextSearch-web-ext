@@ -384,6 +384,7 @@ You can choose to highlight only on the current domain / website, or follow link
 * `Continue highlighting pages on the search results website` 
 * `Continue highlighting on external websites linked from the search results page`
 
+
 You can also display the CS Find bar and / or a navigation bar ( page preview ) when highlighting.
 
 #### Accuracy

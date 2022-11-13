@@ -145,8 +145,9 @@ async function findFavicons(url) {
 		console.log(error);
 	} finally {
 		if ( tab ) browser.tabs.remove(tab.id);
-		return hrefs || [];
 	}
+	
+	return hrefs || [];
 }
 
 // options.html
