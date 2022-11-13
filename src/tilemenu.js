@@ -362,6 +362,14 @@ async function makeQuickMenu(options) {
 		quickMenuObject.searchTermsObject.selection = sb.value;
 	})
 
+	// sb.addEventListener('keydown', e => {
+	// 	console.log(e);
+	// 	if ( e.key !== "Control" ) return;
+
+	// 	sb.style.backgroundColor = 'blue';
+
+	// })
+
 	let csb = document.getElementById('clearSearchBarButton');
 	csb.onclick = function() { 
 		sb.set("");

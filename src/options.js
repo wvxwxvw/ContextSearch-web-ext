@@ -450,6 +450,13 @@ document.addEventListener("DOMContentLoaded", async e => {
 	//buildLayoutEditors();
 	hideBrowserSpecificElements();
 
+	// (() => {
+	// 	document.querySelectorAll('.tabcontent').forEach( tab => {
+	// 		let headers = tab.querySelectorAll('section > .header1');
+	// 		console.log(tab.id, [...headers].map(h => i18n(h.dataset.i18n)));
+	// 	});
+	// })();
+
 	// restore settings and set INPUT values
 	await restoreOptions();
 

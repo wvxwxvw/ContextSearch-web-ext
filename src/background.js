@@ -245,13 +245,10 @@ async function notify(message, sender, sendResponse) {
 			return sendMessageToAllFrames();
 
 		case "toggleLockQuickMenu":
-			onFound = () => {}
-			onError = () => {}
-
 			return browser.tabs.executeScript(sender.tab.id, {
 				code: 'if ( quickMenuObject && quickMenuObject.locked ) unlockQuickMenu(); else lockQuickMenu();',
 				allFrames:false
-			}).then(onFound, onError);
+			});
 			
 		case "rebuildQuickMenu":
 			return sendMessageToTopFrame();
@@ -1600,6 +1597,9 @@ async function openSearch(info) {
 		var encodedSearchTermsObject = encodeCharset(searchTerms, se.queryCharset);
 		
 		var q = replaceOpenSearchParams({template: se.template, searchterms: encodedSearchTermsObject.uri, url: tab.url, domain: domain});
+
+	//	q.replace("%i", await imageToUri(searchTerms));
+
 
 		// set landing page for POST engines
 		if ( 
