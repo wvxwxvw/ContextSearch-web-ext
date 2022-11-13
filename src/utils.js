@@ -193,6 +193,16 @@ const i18n_layout_titles = {
 	"contextsBar": 			'contexts'
 };
 
+async function imageToURI(url) {
+
+	let blob = await fetch(url).then(r => r.blob());
+	return await new Promise(resolve => {
+		let reader = new FileReader();
+		reader.onload = () => resolve(reader.result);
+		reader.readAsDataURL(blob);
+	});
+}
+
 const log = console.log;
 const debug = (...args) => {
 	if ( userOptions && userOptions.developerMode )
