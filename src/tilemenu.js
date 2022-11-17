@@ -699,13 +699,15 @@ async function makeQuickMenu(options) {
 
 			// first in GROUP.block, reset counter
 			if ( !t.previousSibling && closestBlock) {
+				// console.log('first in GROUP.block, reset counter',t.title);
 				qm.insertBefore(br(), closestBlock);
 				count = 2;
-				return;
+				//return;
 			}
 
 			// last in GROUP.block, reset counter
 			if ( !t.nextSibling && closestBlock ) {
+				// console.log("last in GROUP.block, reset counter", t.title);
 				t.parentNode.insertBefore(br(), t.nextSibling);
 				count = 1;
 				return;
@@ -718,7 +720,8 @@ async function makeQuickMenu(options) {
 				return
 			}
 
-			if ( count === _columns ) {
+			if ( count >= _columns ) {
+				// console.log('count === _columns', t.title);
 				t.parentNode.insertBefore(br(), t.nextSibling);
 				count = 1;
 				return
@@ -1578,7 +1581,7 @@ document.addEventListener('click', e => {
 
 document.addEventListener('mousedown', e => {
 
-	let tile = e.target.closest('.tile, .quickMenuMore');
+	let tile = e.target.closest('.tile, .quickMenuMore, .groupMoreTile');
 
 	if ( !tile ) return;
 
@@ -1600,7 +1603,7 @@ document.addEventListener('mouseup', async e => {
 
 	if ( !e.target.closest ) return;
 
-	let tile = e.target.closest('.tile, .quickMenuMore');
+	let tile = e.target.closest('.tile, .quickMenuMore, .groupMoreTile');
 
 	if ( !tile || !tile.action ) return;
 

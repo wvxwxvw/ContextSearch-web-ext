@@ -279,7 +279,6 @@ BODY {
 	font-family:Arial;
 	font-size:11pt;
 	white-space:nowrap;
-	/*width:var(--iframe-body-width, auto);*/
 	width: calc(100% - 8px);
 	text-overflow: ellipsis;
 	padding: 0 4px;
@@ -455,6 +454,7 @@ GROUP > LABEL {
 	display:block;
 	padding: 2px 0px;
 	border-radius:2px;
+	text-overflow: ellipsis;
 	/*display:none;*/
 }
 
@@ -558,10 +558,12 @@ GROUP.inline {
 }
 GROUP.block {
 	display: block;
+	max-width: var(--iframe-body-width);
 }
 
 GROUP.block > LABEL {
 	/*pointer-events: none;*/
+	/*display: none;*/
 }
 
 GROUP.inline .tile:not(HR) {
@@ -663,7 +665,7 @@ HR.break {
 	width:var(--iframe-body-width, auto);
 	text-align: center;
 	white-space: nowrap;
-	text-overflow: ellipsis;
+	/*text-overflow: ellipsis;*/
 }
 #contextsBar > DIV {
 	display: inline-block;
