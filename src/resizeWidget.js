@@ -92,8 +92,8 @@ function addResizeWidget(el, options) {
 			//	if ( mostRecentModSize.columns === colsMod && mostRecentModSize.rows === rowsMod )
 				//	return;
 
-				o.columns = startSize.columns + colsMod;
-				o.rows = startSize.rows + rowsMod;
+				o.columns = Math.max(startSize.columns + colsMod, 1);
+				o.rows = Math.max(startSize.rows + rowsMod, 1);
 
 				// add code to skip when !allowHorizontal and only rows change
 				o.onDrag({
@@ -126,9 +126,9 @@ function addResizeWidget(el, options) {
 				
 				resizeWidget.style.transition = null;
 
-				if ( o.columns < 1 ) {
-					o.columns = Math.floor(el.getBoundingClientRect() * window.devicePixelRatio / o.tileSize.width);
-				}
+				// if ( o.columns < 1 ) {
+				// 	o.columns = Math.floor(el.getBoundingClientRect() * window.devicePixelRatio / o.tileSize.width);
+				// }
 				
 				o.onDrop(o);
 				
