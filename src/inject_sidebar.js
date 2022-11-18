@@ -352,6 +352,11 @@ document.addEventListener("fullscreenchange", e => {
 	});
 });
 
+document.addEventListener('click', e => {
+	if (e.target.closest("contextsearch-widgets")) return;
+	getIframe().contentWindow.postMessage({action: "editEnd"}, browser.runtime.getURL('/searchbar.html'));
+})
+
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 	if (typeof message.action !== 'undefined') {
