@@ -890,25 +890,24 @@
 				-moz-user-select: none;
 			}
 			.contextMenu {
-				background-color:var(--bg-color2);
-				border:1px solid #aaa;
-				position:absolute;
+				position:fixed;
 				z-index:2;
-				border-radius: 4px;
-				overflow:hidden;
 				opacity:0;
 				cursor:default;
-				border:1px solid var(--border-color3);/*#C2C3C5;*/
 				box-shadow: 0px 2px 8px 1px rgba(0,0,0,.25);
+				background-color:var(--bg-color2);
+				user-select: none;
 			}
 			.contextMenu > .menuItem {
+				
 				display: block;
-				width:100%;
 				border:1px solid var(--bg-color3);
 				vertical-align:middle;
 				text-align:left;
 				padding: 2px 5px;
 				white-space: nowrap;
+				padding-right: 36px;
+				position: relative;
 			}
 			.contextMenu > .menuItem:hover {
 				background-color: var(--hover1);
@@ -918,6 +917,13 @@
 				margin-right:10px;
 				vertical-align:middle;
 				width: 20px;
+			}
+			.contextMenu > .menuItem .forward {
+				transform:scaleX(-1);
+				position:absolute;
+				right:4px;
+				height:1em;
+				verticalAlign:middle;
 			}
 			.treeNode {
 				border-top: var(--tree-row-border);
@@ -1562,16 +1568,14 @@
 				display: inline-block;
 			}
 
-			FIREFOX-ICON::before {
-				content: "FF";
+			FIREFOX-ICON {
+				/*content: "FF";*/
 				background-color:rgb(234, 172, 92);
-				color:white;
-				border-radius:4px;
-				font-size:7pt;
-				font-weight:bold;
-				margin-left:5px;
-				padding:1px 5px;
+				border-radius:50%;
 				vertical-align:middle;
+				height: 8px;
+				width: 8px;
+				display: inline-block;
 			}
 			BETA::before {
 				background-image: url('/icons/alert.svg');
@@ -1675,6 +1679,12 @@
 						<td >updateNativeApp</td>
 						<td>
 							<button class="updateNativeApp">⟳</button>
+						</td>
+					</tr>
+					<tr>
+						<td >Sync</td>
+						<td>
+							<button id="syncToCloud">⟳</button>
 						</td>
 					</tr>
 					<tr class="moveToEnd">
@@ -3436,14 +3446,14 @@
 						<input name="selectMozlz4FileButton" id="selectMozlz4FileButton" type="file" accept=".json.mozlz4" />
 					</label>
 					
-					<div class="option">
+					<div class="option" style="display:inline-block;margin-left:20px">
 						<checkbox data-id="cb_overwriteOnImport" data-i18n=""></checkbox>
 						<span class="description" data-i18n="ClearSearchList">$</span>
 					</div>
 					
 					<div id="status_div" style="display:none;">
 						<div style='display:inline-block;margin: 0 20px;border-radius:50%;padding:2px'>
-							<img id="status_img" class="smallIcon" style="height:30px" src="/icons/transparent.gif" />
+							<img id="status_img" class="smallIcon" style="height:16px" src="/icons/transparent.gif" />
 						</div>
 						<div id="status" style='display:inline-block'>&nbsp;</div>
 					</div>

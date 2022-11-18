@@ -20,7 +20,6 @@ $("#selectMozlz4FileButton").addEventListener('change', ev => {
 	
 	if ( $('#cb_overwriteOnImport').checked && confirm(i18n("ConfirmDeleteCustomSearchEngines")) ) {
 		userOptions.nodeTree.children = [];
-		userOptions.searchEngines = [];
 	}
 	
 	readMozlz4File(file, text => { // on success
@@ -40,47 +39,41 @@ $("#selectMozlz4FileButton").addEventListener('change', ev => {
 		let newEngines = [];
 		
 		for (let se of searchEngines) {
+
+			se.type = "searchEngine";
+			se.contexts = 32; // selection
 			
-			if (!userOptions.searchEngines.find( _se => _se.title === se.title)) {
-				console.log(se.title + " not included in userOptions.searchEngines");
+			if (!findNode(userOptions.nodeTree,  n => n.type === 'searchEngine' && n.title === se.title)) {
+				console.log(se.title + " not included in nodeTree");
 				
 				// add to searchEngines
 				newEngines.push(se);
 				
-				let node = {
-					type: "searchEngine",
-					title: se.title,
-					id: se.id,
-					hidden: se.hidden || false
-				}
-
 				// replace one-click nodes with same name
 				let ocn = findNodes(userOptions.nodeTree, (_node, parent) => {
 					if ( _node.type === 'oneClickSearchEngine' && _node.title === se.title ) {
-						parent.children.splice(parent.children.indexOf(_node), 1, node);
+						parent.children.splice(parent.children.indexOf(_node), 1, se);
 						return true;
 					}
 					return false;
 				});
 				
+				// if at least one OCSE was found
 				if ( ocn.length ) {
 					console.log(se.title + " one-click engine found. Replacing node");
 				} else {
 					// add to nodeTree
-					userOptions.nodeTree.children.push(node);
+					userOptions.nodeTree.children.push(se);
 				}
 				
 			}
 		}
-		// end 1.3.2+
 		
 		// get remote icons for new engines
 		loadRemoteIcon({
-			searchEngines: newEngines, // 1.3.2+
+			searchEngines: newEngines,
 		}).then( (details) => {
-			
-			// append the new engines
-			userOptions.searchEngines = userOptions.searchEngines.concat(details.searchEngines);
+
 			saveOptions();
 			
 			if (details.hasFailedCount) {
@@ -145,11 +138,24 @@ async function restoreOptions(restoreUserOptions) {
 		function traverse(o, parentKey) {
 			for ( let key in o) {
 
+				// skip nodeTree object
+				if ( o[key] === userOptions.nodeTree ) continue;
+
 				let longKey = ( parentKey ) ? parentKey + "." + key : key;
 
-				let value = longKey.split('.').reduce((a, b) => a[b], defaultUserOptions);
+				let defaultValue = longKey.split('.').reduce((a, b) => a[b], defaultUserOptions);
 
-				let type = typeof value;
+				let type = typeof defaultValue;
+
+				// log old/bad keys
+				if ( type === 'undefined' )
+					debug('unrecognized key', longKey);
+
+				// compare key types to defaults and reset if bad match
+				if ( typeof defaultValue !== 'undefined' && typeof o[key] !== typeof defaultValue ) {	
+					console.warn('type does not match default, resetting\n', `${longKey} = ${o[key]} -> ${longKey} = ${defaultValue}`);
+					o[key] = defaultValue;
+				}
 
 				if ( type === 'object' && !Array.isArray(o[key]) )
 					traverse(o[key], longKey);
@@ -475,33 +481,33 @@ document.addEventListener("DOMContentLoaded", async e => {
 	document.body.style.opacity = 1;
 
 	// testing moving tools to SEM
-	(() => {
+	// (() => {
 
-		let ts = userOptions.quickMenuTools;
+	// 	let ts = userOptions.quickMenuTools;
 
-		let folder = {
-			type:"folder",
-			title:"Tools Menu",
-			children:[],
-			hidden:false,
-			id:"tools_menu"
-		}
+	// 	let folder = {
+	// 		type:"folder",
+	// 		title:"Tools Menu",
+	// 		children:[],
+	// 		hidden:false,
+	// 		id:"tools_menu"
+	// 	}
 
-		ts.forEach(t => {
+	// 	ts.forEach(t => {
 
-			let tool = QMtools.find( _t => _t.name === t.name);
+	// 		let tool = QMtools.find( _t => _t.name === t.name);
 
-			folder.children.push({
-				type: "tool",
-				hidden: t.disabled,
-				title: tool.title,
-				icon: tool.icon,
-				tool: tool.name
-			})
-		})
+	// 		folder.children.push({
+	// 			type: "tool",
+	// 			hidden: t.disabled,
+	// 			title: tool.title,
+	// 			icon: tool.icon,
+	// 			tool: tool.name
+	// 		})
+	// 	})
 
-		console.log(folder);
-	});
+	// 	console.log(folder);
+	// });
 
 });
 
@@ -539,6 +545,7 @@ function addDOMListeners() {
 
 	$('#syncWithFirefoxSearch').addEventListener('change', e => {
 		$('#searchEnginesParentContainer').style.display = e.target.checked ? "none" : null;
+		$('#selectMozlz4FileButton').closest('section').style.display = e.target.checked ? "none" : null;
 	});
 
 	$('#b_requestClipboardWritePermissions').addEventListener('click', async () => {
@@ -573,10 +580,17 @@ function addDOMListeners() {
 			})
 		}
 	})
+
+	$('syncToCloud').addEventListener('click', e => {
+		syncTest();
+	});
+
+
 }
 
 document.addEventListener('userOptionsLoaded', e => {
 	$('#searchEnginesParentContainer').style.display = $('#syncWithFirefoxSearch').checked ? "none" : null;
+	$('#selectMozlz4FileButton').closest('section').style.display = $('#syncWithFirefoxSearch').checked ? "none" : null;
 });
 
 function keyButtonListener(e) {
@@ -934,8 +948,10 @@ function buildImportExportButtons() {
 		
 		if ( userOptions.exportWithoutBase64Icons ) {
 			let uoCopy = Object.assign({}, userOptions);
-			uoCopy.searchEngines.forEach( se => se.icon_base64String = "");
 			findNodes(uoCopy.nodeTree, node => {
+				if ( node.type === "searchEngine" )
+					node.icon_base64String = "";
+
 				if ( node.type === "oneClickSearchEngine" )
 					node.icon = "";
 			});
@@ -973,6 +989,15 @@ function buildImportExportButtons() {
 				// flatten
 				folder.children = findNodesDeep(folder, n => n.type !== 'folder' );
 
+				// repair old style
+				findNodes(folder, n => {
+					if ( n.searchEngine ) {
+						Object.assign(n, n.searchEngine);
+						delete n.searchEngine;
+					}
+
+				})
+
 				// get nodes with duplicate ids in userOptions.nodeTree
 				let dupes = findNodesDeep(folder, n => findNode(uo.nodeTree, _n => _n.id === n.id));
 
@@ -998,37 +1023,17 @@ function buildImportExportButtons() {
 						let oldNode = findNode(uo.nodeTree, n => n.id === dupe.id );
 						oldNode = JSON.parse(JSON.stringify(dupe));
 
-						if ( dupe.type === 'searchEngine' && dupe.searchEngine ) {
-							let i = uo.searchEngines.findIndex( _se => _se.id === dupe.id );
-							if ( i > -1 ) uo.searchEngines[i] = JSON.parse(JSON.stringify(dupe.searchEngine));
-
-							delete dupe.searchEngine;
-						}
-
 						removeNodesById(folder, dupe.id);
 					}
 
 					if ( result === "merge" ) {
-
 						// replace id 
 						dupe.id = gen();
-
-						// push to searchEngines array
-						if ( dupe.type === 'searchEngine' && dupe.searchEngine ) {
-							dupe.searchEngine.id = dupe.id;
-
-							uo.searchEngines.push(dupe.searchEngine);
-							delete dupe.searchEngine;
-						}
 					}
 						
 					$('#importModalDuplicates').classList.add('hide');
 
 				}
-
-				findNodes(folder, n => n.type === "searchEngine").forEach( n => {
-					if ( n.searchEngine ) uo.searchEngines.push(n.searchEngine);
-				})
 
 				if ( folder.children.length ) uo.nodeTree.children.push(folder);
 
@@ -1038,6 +1043,7 @@ function buildImportExportButtons() {
 				return;
 
 			} catch (error) { console.error(error)}
+
 			try {
 				let newUserOptions = JSON.parse(reader.result);
 				
@@ -1045,152 +1051,151 @@ function buildImportExportButtons() {
 				if ( 
 					typeof newUserOptions !== 'object'
 					|| newUserOptions.quickMenu === undefined
-					|| !newUserOptions.searchEngines
 					
 				) {
 					alert(i18n("ImportSettingsNotFoundAlert"));
 					return;
 				}
 
-				if ( false && userOptions.advancedImport ) {
+				// if ( false && userOptions.advancedImport ) {
 
-					$('#main').classList.add('blur');
+				// 	$('#main').classList.add('blur');
 
-					let choice1 = await new Promise( res => {
-						$('#importModal').classList.remove('hide');
+				// 	let choice1 = await new Promise( res => {
+				// 		$('#importModal').classList.remove('hide');
 
-						$('#importModal .replace').addEventListener('click', e => res("replace"));
-						$('#importModal .merge').addEventListener('click', e => res("merge"));
-						$('#importModal .cancel').addEventListener('click', e => res("cancel"));
-					});
-					$('#importModal').classList.add('hide');
+				// 		$('#importModal .replace').addEventListener('click', e => res("replace"));
+				// 		$('#importModal .merge').addEventListener('click', e => res("merge"));
+				// 		$('#importModal .cancel').addEventListener('click', e => res("cancel"));
+				// 	});
+				// 	$('#importModal').classList.add('hide');
 
-					if ( choice1 === "cancel" ) return;
-					if ( choice1 === "merge" ) {
-						await new Promise( res => {
-							$('#importModalCustom').classList.remove('hide');
-							$('#importModalCustom .ok').addEventListener('click', e => res("replace"));
-							$('#importModalCustom .cancel').addEventListener('click', e => res("cancel"));
+				// 	if ( choice1 === "cancel" ) return;
+				// 	if ( choice1 === "merge" ) {
+				// 		await new Promise( res => {
+				// 			$('#importModalCustom').classList.remove('hide');
+				// 			$('#importModalCustom .ok').addEventListener('click', e => res("replace"));
+				// 			$('#importModalCustom .cancel').addEventListener('click', e => res("cancel"));
 
-							let left_browser = $('#importModalCustom [name="nodes_left"]');
-							let right_browser = $('#importModalCustom [name="nodes_right"]');
+				// 			let left_browser = $('#importModalCustom [name="nodes_left"]');
+				// 			let right_browser = $('#importModalCustom [name="nodes_right"]');
 
-							left_browser.innerHTML = null;
-							right_browser.innerHTML = null;
+				// 			left_browser.innerHTML = null;
+				// 			right_browser.innerHTML = null;
 
-							let copy = Object.assign({}, newUserOptions);
-							traverseNodesDeep(copy.nodeTree, (n,p) => {
+				// 			let copy = Object.assign({}, newUserOptions);
+				// 			traverseNodesDeep(copy.nodeTree, (n,p) => {
 
-								// remove OCSE from non-FF browsers
-								if ( n.type === "oneClickSearchEngine" && !browser.search )
-									removeNode(n,p);
-								// remove duplicate nodes
-								else if ( findNode(userOptions.nodeTree, _n => _n.id === n.id && JSON.stringify(_n) === JSON.stringify(n)) )
-									removeNode(n,p);
-								// remove missing engines
-								else if ( n.type === "searchEngine" && !copy.searchEngines.find(se => se.id === n.id ) )
-									removeNode(n,p);
-								// remove empty folders
-								else if ( n.type === "folder" && !n.children.length && p)
-									removeNode(n,p);
+				// 				// remove OCSE from non-FF browsers
+				// 				if ( n.type === "oneClickSearchEngine" && !browser.search )
+				// 					removeNode(n,p);
+				// 				// remove duplicate nodes
+				// 				else if ( findNode(userOptions.nodeTree, _n => _n.id === n.id && JSON.stringify(_n) === JSON.stringify(n)) )
+				// 					removeNode(n,p);
+				// 				// remove missing engines
+				// 				// else if ( n.type === "searchEngine" && !copy.searchEngines.find(se => se.id === n.id ) )
+				// 				// 	removeNode(n,p);
+				// 				// remove empty folders
+				// 				else if ( n.type === "folder" && !n.children.length && p)
+				// 					removeNode(n,p);
 
-							})
+				// 			})
 
-							left_browser.appendChild(makeFolderBrowser(copy.nodeTree));
-							right_browser.appendChild(makeFolderBrowser({type: "folder", title:"/", id: gen(), children: []}));
+				// 			left_browser.appendChild(makeFolderBrowser(copy.nodeTree));
+				// 			right_browser.appendChild(makeFolderBrowser({type: "folder", title:"/", id: gen(), children: []}));
 
-							left_browser.querySelectorAll('li').forEach( li => {
-								li.classList.add('new');
-								li.addEventListener('click', e => {
-									if ( e.target !== li ) return;
+				// 			left_browser.querySelectorAll('li').forEach( li => {
+				// 				li.classList.add('new');
+				// 				li.addEventListener('click', e => {
+				// 					if ( e.target !== li ) return;
 
-									let parent = li.closest('.folderBrowser');
-									let notParent = [left_browser, right_browser].find( b => !b.contains(parent));
+				// 					let parent = li.closest('.folderBrowser');
+				// 					let notParent = [left_browser, right_browser].find( b => !b.contains(parent));
 
-									if ( left_browser.contains(parent) ) {
-										let div = document.createElement('div');
-										div.dataset.id = li.node.id;
-										li.parentNode.insertBefore(div, li);
-										notParent.querySelector('li[title="/"] > UL').appendChild(li);
-									} else {
-										let placeholder = left_browser.querySelector(`div[data-id="${li.node.id}"]`);
+				// 					if ( left_browser.contains(parent) ) {
+				// 						let div = document.createElement('div');
+				// 						div.dataset.id = li.node.id;
+				// 						li.parentNode.insertBefore(div, li);
+				// 						notParent.querySelector('li[title="/"] > UL').appendChild(li);
+				// 					} else {
+				// 						let placeholder = left_browser.querySelector(`div[data-id="${li.node.id}"]`);
 
-										if ( placeholder)  {
-											placeholder.parentNode.insertBefore(li, placeholder);
-											placeholder.parentNode.removeChild(placeholder);
-										}
-									}
-								})
-							});
-						}).then( async result => {
+				// 						if ( placeholder)  {
+				// 							placeholder.parentNode.insertBefore(li, placeholder);
+				// 							placeholder.parentNode.removeChild(placeholder);
+				// 						}
+				// 					}
+				// 				})
+				// 			});
+				// 		}).then( async result => {
 
-							if ( result === "cancel" ) {
-								newUserOptions = null;
-								return;
-							}
+				// 			if ( result === "cancel" ) {
+				// 				newUserOptions = null;
+				// 				return;
+				// 			}
 
-							let _settings = $('#importModalCustom [name="settings"]').checked;
-							let _history = $('#importModalCustom [name="history"]').checked;
+				// 			let _settings = $('#importModalCustom [name="settings"]').checked;
+				// 			let _history = $('#importModalCustom [name="history"]').checked;
 
-							if ( !_history )
-								newUserOptions.searchBarHistory = JSON.parse(JSON.stringify(userOptions.searchBarHistory));
+				// 			if ( !_history )
+				// 				newUserOptions.searchBarHistory = JSON.parse(JSON.stringify(userOptions.searchBarHistory));
 
-							if ( !_settings ) {
-								for ( key in userOptions ) {
-									if ( !["nodeTree", "searchEngines", "searchBarHistory"].includes(key) )
-										newUserOptions[key] = JSON.parse(JSON.stringify(userOptions[key]));
-								}
-							}
+				// 			if ( !_settings ) {
+				// 				for ( key in userOptions ) {
+				// 					if ( !["nodeTree", "searchEngines", "searchBarHistory"].includes(key) )
+				// 						newUserOptions[key] = JSON.parse(JSON.stringify(userOptions[key]));
+				// 				}
+				// 			}
 
-							let tree = listToNodeTree($('#importModalCustom [name="nodes_right"] .folderBrowser li[title="/"] > UL'));
-							let ids = findNodes(tree, n => n.type === "searchEngine").map(n => n.id);
+				// 			let tree = listToNodeTree($('#importModalCustom [name="nodes_right"] .folderBrowser li[title="/"] > UL'));
+				// 			let ids = findNodes(tree, n => n.type === "searchEngine").map(n => n.id);
 
-							let duplicates = [];
-							ids.forEach( id => {
-								let node = findNode(userOptions.nodeTree, n => n.id === id );
-								if ( node ) duplicates.push(n);
-							});
+				// 			let duplicates = [];
+				// 			ids.forEach( id => {
+				// 				let node = findNode(userOptions.nodeTree, n => n.id === id );
+				// 				if ( node ) duplicates.push(n);
+				// 			});
 
-							// loop over duplicates to replace, skip, cancel
-							for ( let dupe of duplicates ) {
-								await new Promise( res => {
-									$('#importModalDuplicates').classList.remove('hide');
-									$('#importModalDuplicates [name="message"]').innerText = dupe.title;
-									$('#importModalDuplicates [name="replace"]').addEventListener('click', e => res("replace"));
-									$('#importModalDuplicates [name="skip"]').addEventListener('click', e => res("skip"));
-									$('#importModalDuplicates [name="cancel"]').addEventListener('click', e => res("cancel"));
-								}).then(result => {
-									if ( result === "skip" )
-										removeNodesById(tree, dupe.id);
+				// 			// loop over duplicates to replace, skip, cancel
+				// 			for ( let dupe of duplicates ) {
+				// 				await new Promise( res => {
+				// 					$('#importModalDuplicates').classList.remove('hide');
+				// 					$('#importModalDuplicates [name="message"]').innerText = dupe.title;
+				// 					$('#importModalDuplicates [name="replace"]').addEventListener('click', e => res("replace"));
+				// 					$('#importModalDuplicates [name="skip"]').addEventListener('click', e => res("skip"));
+				// 					$('#importModalDuplicates [name="cancel"]').addEventListener('click', e => res("cancel"));
+				// 				}).then(result => {
+				// 					if ( result === "skip" )
+				// 						removeNodesById(tree, dupe.id);
 
-									$('#importModalDuplicates').classList.add('hide');
-								});
-							}
+				// 					$('#importModalDuplicates').classList.add('hide');
+				// 				});
+				// 			}
 
-							if ( duplicates.length ) console.error(duplicates);
+				// 			if ( duplicates.length ) console.error(duplicates);
 
-							// append searchEngines
-							let ses = userOptions.searchEngines.filter(se => ids.includes(se.id));
-							newUserOptions.searchEngines = userOptions.searchEngines.concat(ses);
+				// 			// append searchEngines
+				// 			// let ses = userOptions.searchEngines.filter(se => ids.includes(se.id));
+				// 			// newUserOptions.searchEngines = userOptions.searchEngines.concat(ses);
 							
-							// append tree to newUserOptions
-							tree.title = "Imported";
-							newUserOptions.nodeTree = JSON.parse(JSON.stringify(userOptions.nodeTree));
+				// 			// append tree to newUserOptions
+				// 			tree.title = "Imported";
+				// 			newUserOptions.nodeTree = JSON.parse(JSON.stringify(userOptions.nodeTree));
 
-							if ( tree.children.length )
-								newUserOptions.nodeTree.children.push(JSON.parse(JSON.stringify(tree)));
+				// 			if ( tree.children.length )
+				// 				newUserOptions.nodeTree.children.push(JSON.parse(JSON.stringify(tree)));
 
-						});
+				// 		});
 
-						$('#importModalCustom').classList.add('hide');
-					}
+				// 		$('#importModalCustom').classList.add('hide');
+				// 	}
 
-					$('#main').classList.remove('blur');
-				}
+				// 	$('#main').classList.remove('blur');
+				// }
 
 				// check for cancel
 				if ( !newUserOptions ) return;
-				
+	
 				// update imported options
 				let _uo = await browser.runtime.sendMessage({action: "updateUserOptionsObject", userOptions: newUserOptions})
 				
@@ -1210,14 +1215,9 @@ function buildImportExportButtons() {
 				msgDiv.innerText = i18n("Fetchingremotecontent");
 				overDiv.appendChild(msgDiv);
 				document.body.appendChild(overDiv);
-				let sesToBase64 = _uo.searchEngines.filter(se => !se.icon_base64String);
+				let sesToBase64 = findNodes(_uo.nodeTree, n => n.type === "searchEngine").filter(se => !se.icon_base64String);
 				let details = await loadRemoteIcon({searchEngines: sesToBase64, timeout:10000});
-				_uo.searchEngines.forEach( (se,index) => {
-					let updatedSe = details.searchEngines.find( _se => _se.id === se.id );
-					
-					if ( updatedSe ) _uo.searchEngines[index].icon_base64String = updatedSe.icon_base64String;
-				});
-				
+
 				// load OCSE favicons
 				if ( browser.search && browser.search.get ) {
 					let ocses = await browser.search.get();
@@ -1562,8 +1562,7 @@ $("#replaceMozlz4FileButton").addEventListener('change', ev => {
 
 		nodes.forEach( n => {
 			if ( n.type === "searchEngine" ) {
-				let se = userOptions.searchEngines.find( _se => _se.id === n.id );
-				if ( se ) ses.push(CS2FF(se));
+				ses.push(CS2FF(n));
 			}
 			
 			if ( n.type === "oneClickSearchEngine" ) {
@@ -1572,7 +1571,8 @@ $("#replaceMozlz4FileButton").addEventListener('change', ev => {
 			}
 		});
 
-		for ( let i in ses) ses[i]._metaData.order = i;
+		ses.forEach( (se,i) => se._metaData.order = i)
+	//	for ( let i in ses) ses[i]._metaData.order = i;
 		
 		// console.log(ses);
 
@@ -1652,8 +1652,10 @@ function cacheAllIcons(e) {
 	msg.innerText = "cache progress";
 	e.target.parentNode.insertBefore(msg, e.target.nextSibling);
 
+	let length = findNodes(userOptions.nodeTree, n => n.type === 'searchEngine').length;
+
 	let interval = setInterval(() => {
-		msg.innerText = `caching ${result.count - 1} / ${userOptions.searchEngines.length}`;
+		msg.innerText = `caching ${result.count - 1} / ${length}`;
 	}, 100);
 
 	result.oncomplete = function() {
@@ -2088,7 +2090,6 @@ $('b_manualSave').addEventListener('click', e => {
 $("#b_resetUserOptions").addEventListener('click', e => {
 	if ( confirm(i18n("resetUserOptionsConfirm")) ) {
 		newUserOptions = JSON.parse(JSON.stringify(defaultUserOptions));
-		newUserOptions.searchEngines = JSON.parse(JSON.stringify(userOptions.searchEngines));
 		newUserOptions.nodeTree = JSON.parse(JSON.stringify(userOptions.nodeTree));
 
 		browser.runtime.sendMessage({action: "saveUserOptions", userOptions: newUserOptions})
@@ -2253,4 +2254,46 @@ function makeFolderBrowser(tree) {
 	ul.querySelector('ul').style.display = null;
 
 	return ul;
+}
+
+function syncTest() {
+	let uo = JSON.parse(JSON.stringify(userOptions));
+
+	let badNodes = findNodes(uo.nodeTree, n => {
+		if ( n.type !== 'oneClickSearchEngine' && n.icon && n.icon.startsWith('data:') ) return true;
+		if ( n.icon_url && n.icon_url.startsWith('data:') ) return true;
+	});
+
+	console.log('bad nodes', badNodes);
+
+	badNodes.forEach(n => {
+		if ( n.icon_url ) n.icon_url = "";
+		if ( n.icon ) n.icon = "";
+	});
+	
+	findNodes(uo.nodeTree, n => n.type === 'oneClickSearchEngine').forEach( n => n.icon = "");
+	findNodes(uo.nodeTree, n => n.type === 'searchEngine').forEach( n => n.icon_base64String = "");
+	uo.searchBarHistory = [];
+
+	console.log("options in bytes:", JSON.stringify(uo).length);
+
+	for ( key in uo ) {
+		console.log(key, JSON.stringify(uo[key]).length);
+	}
+
+
+	let nodes = findNodes(uo.nodeTree, n => n.type !== 'folder');
+	nodes.sort((a,b) => JSON.stringify(a).length > JSON.stringify(b).length );
+
+	nodes.forEach(n => console.log(n.title, JSON.stringify(n).length));
+
+	findNodes(uo.nodeTree, n => n.type === 'folder' && n.icon ).forEach( n => console.log(n.title, n.icon.length))
+
+	let count = findNodes(uo.nodeTree, n => true).length;
+	let size = JSON.stringify(uo.nodeTree).length
+
+	console.log("count", count, "total size", size, "average", size / count);
+
+	console.log("options in bytes:", JSON.stringify(uo).length);
+
 }
