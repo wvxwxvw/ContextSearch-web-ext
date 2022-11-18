@@ -16,7 +16,7 @@ var isAndroid = false;
 // init
 (async () => {
 	await loadUserOptions();
-	console.log("userOptions loaded. Updating objects");
+	debug("userOptions loaded. Updating objects");
 	userOptions = await updateUserOptionsVersion(userOptions);
 	await browser.storage.local.set({"userOptions": userOptions});
 	await checkForOneClickEngines();
@@ -42,7 +42,7 @@ browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 	let highlightInfo = highlightTabs.find( ht => ( ht.tabId === tabId || ht.tabId === tab.openerTabId ) && ( ( userOptions.highLight.followExternalLinks && ht.domain !== url.hostname ) || ( userOptions.highLight.followDomain && ht.domain === url.hostname ) ) );
 	
 	if ( highlightInfo ) {
-		console.log('found openerTabId ' + tab.openerTabId + ' in hightlightTabs');
+		debug('found openerTabId ' + tab.openerTabId + ' in hightlightTabs');
 
 		waitOnInjection(tabId).then(value => {
 			highlightSearchTermsInTab(tab, highlightInfo.searchTerms);
@@ -110,13 +110,13 @@ browser.tabs.onZoomChange.addListener( async zoomChangeInfo => {
 
 	browser.tabs.executeScript( zoomChangeInfo.tabId, {
 		code: 'document.dispatchEvent(new CustomEvent("zoom"));'
-	}).then(() => {}, err => console.log(err));
+	}).then(() => {}, err => debug(err));
 });
 
 async function notify(message, sender, sendResponse) {
 
 	try {
-		console.log(sender.tab.id, sender.tab.url, message.action);
+		debug(sender.tab.id, sender.tab.url, message.action);
 	} catch (error) {}
 
 	function sendMessageToTopFrame() {
@@ -148,7 +148,7 @@ async function notify(message, sender, sendResponse) {
 		case "saveUserOptions":
 			userOptions = message.userOptions;
 
-			console.log("saveUserOptions", message.source || "", sender.tab.url);
+			debug("saveUserOptions", message.source || "", sender.tab.url);
 
 			return browser.storage.local.set({"userOptions": userOptions}).then(() => {
 				notify({action: "updateUserOptions", source: sender});
@@ -157,10 +157,10 @@ async function notify(message, sender, sendResponse) {
 		case "updateUserOptions":
 
 			debounce(async () => {
-				console.log('updateUserOptions');
+				debug('updateUserOptions');
 				let tabs = await getAllOpenTabs();
 				for (let tab of tabs) {
-					browser.tabs.sendMessage(tab.id, {"userOptions": userOptions, source: message.source}).catch( error => {/*console.log(error)*/});	
+					browser.tabs.sendMessage(tab.id, {"userOptions": userOptions, source: message.source}).catch( error => {/*debug(error)*/});	
 				}
 				buildContextMenu();
 			}, 1000, "updateUserOptionsTimer");
@@ -200,7 +200,7 @@ async function notify(message, sender, sendResponse) {
 				img.onload = async function() {
 					let dataURI = await imageToBase64(img);
 					r(dataURI);
-					console.log("URI encode took", Date.now() - start);
+					debug("URI encode took", Date.now() - start);
 				}
 				img.src = message.url;
 			
@@ -215,7 +215,7 @@ async function notify(message, sender, sendResponse) {
 		case "getSearchEngineById":
 			if ( !message.id) return;
 
-			return {"searchEngine": userOptions.searchEngines.find(se => se.id === message.id)};
+			return {"searchEngine": findNode(userOptions.nodeTree, n => n.id === message.id)};
 			
 		case "dispatchEvent":
 			return browser.tabs.executeScript(sender.tab.id, {
@@ -358,7 +358,7 @@ async function notify(message, sender, sendResponse) {
 			var searchTerms = message.searchTerms;
 
 			if ( window.contextMenuSearchTerms === searchTerms ) {
-		//		console.log('same search terms');
+		//		debug('same search terms');
 		//		return;
 			}
 			
@@ -427,7 +427,7 @@ async function notify(message, sender, sendResponse) {
 					});
 
 				} catch (err) {
-					console.log(err);
+					debug(err);
 				}
 			} 
 
@@ -475,15 +475,15 @@ async function notify(message, sender, sendResponse) {
 				exists = exists.shift();
 
 				if ( exists ) {
-					console.log('OpenSearch engine with name ' + title + ' already exists on page');
+					debug('OpenSearch engine with name ' + title + ' already exists on page');
 
 					let oldURL = new URL(exists);
 					let newURL = new URL(url);
 
 					if ( oldURL.href == newURL.href ) {
-						console.log('exists but same url');
+						debug('exists but same url');
 					} else {
-						console.log('open new tab to include fresh opensearch link');
+						debug('open new tab to include fresh opensearch link');
 						
 						let favicon = sender.tab.favIconUrl;
 						
@@ -525,11 +525,9 @@ async function notify(message, sender, sendResponse) {
 		
 			let se = message.searchEngine;
 			
-			console.log('addContextSearchEngine', se)
+			debug('addContextSearchEngine', se)
 			
-			let index = userOptions.searchEngines.findIndex( se2 => se.title === se2.title );
-			
-			if (index !== -1) {
+			if ( findNode(userOptions.nodeTree, n => n.title === se.title) ) {
 				sendResponse({errorMessage: 'Name must be unique. Search engine already exists'});
 				return;
 			}
@@ -537,16 +535,17 @@ async function notify(message, sender, sendResponse) {
 			se.id = gen();
 
 			let parentNode = message.folderId ? findNode(userOptions.nodeTree, n => n.id === message.folderId) : userOptions.nodeTree;
-						
-			userOptions.searchEngines.push(se);
 
+			// generic node
 			let node = {
 				type: "searchEngine",
-				title: se.title,
-				id: se.id,
 				hidden: false,
-				contexts:[32]
+				contexts:32
 			}
+
+			// populate generic node with se values
+			Object.assign(node, se);
+
 			parentNode.children.push(node);
 
 			notify({action: "saveOptions", userOptions:userOptions});
@@ -558,15 +557,7 @@ async function notify(message, sender, sendResponse) {
 
 			if ( !message.id ) return;
 
-			index = userOptions.searchEngines.findIndex( se => se.id === message.id );
-			
-			if (index === -1) {
-				console.log('index not found');
-				return;
-			}
-			
-			userOptions.searchEngines.splice(index, 1);
-	
+			removeNodesById(userOptions.nodeTree, message.id)	
 			notify({action: "saveOptions", userOptions:userOptions});
 			
 			break;
@@ -589,10 +580,10 @@ async function notify(message, sender, sendResponse) {
 			try {
 				browser.contextMenus.update("add_engine", { visible: true }).then(() => {
 					if (browser.runtime.lastError)
-						console.log(browser.runtime.lastError);
+						debug(browser.runtime.lastError);
 				});
 			} catch (err) {
-				console.log(err);
+				debug(err);
 			}
 
 			break;
@@ -602,15 +593,15 @@ async function notify(message, sender, sendResponse) {
 			try {
 				browser.contextMenus.update("add_engine", { visible: false }).then(() => {
 					if (browser.runtime.lastError)
-						console.log(browser.runtime.lastError);
+						debug(browser.runtime.lastError);
 				});
 			} catch (err) {
-				console.log(err);
+				debug(err);
 			}
 			break;
 
 		case "log":
-			console.log(message, sender);
+			debug(message, sender);
 			break;
 			
 		case "focusSearchBar":
@@ -626,7 +617,7 @@ async function notify(message, sender, sendResponse) {
 			
 		case "getCurrentTheme":
 			browser.theme.getCurrent().then( theme => {
-				console.log(theme);
+				debug(theme);
 			});
 			break;
 			
@@ -658,7 +649,7 @@ async function notify(message, sender, sendResponse) {
 					// No recognizable GET url. Prompt for advanced options
 					if (Date.now() - timeout > 5000) {
 
-						console.log('urlCheckInterval timed out');
+						debug('urlCheckInterval timed out');
 						browser.tabs.sendMessage(tabInfo.id, {action: "openCustomSearch", timeout: true}, {frameId: 0});
 						clearInterval(urlCheckInterval);
 					}
@@ -676,7 +667,7 @@ async function notify(message, sender, sendResponse) {
 				
 				return true;
 			} catch (error) {
-				console.log(error);
+				debug(error);
 				return false;
 			}
 
@@ -698,7 +689,7 @@ async function notify(message, sender, sendResponse) {
 			highlightTabs.findIndex( (hl, i) => {
 				if (hl.tabId === tabId) {
 					highlightTabs.splice(i, 1);
-					console.log('removing tabId ' + tabId + ' from array');
+					debug('removing tabId ' + tabId + ' from array');
 					return true;
 				}
 			});
@@ -731,7 +722,7 @@ async function notify(message, sender, sendResponse) {
 		
 		case "addToHistory": {
 
-			if ( sender.tab.incognito && userOptions.incognitoTabsForgetHistory ) return console.log('incognito - do not add to history')
+			if ( sender.tab.incognito && userOptions.incognitoTabsForgetHistory ) return debug('incognito - do not add to history')
 	
 			let terms = message.searchTerms.trim();
 			
@@ -759,7 +750,7 @@ async function notify(message, sender, sendResponse) {
 			// update prefs
 			notify({action: "saveUserOptions", "userOptions": userOptions, source: "addToHistory" });
 			
-			console.info('adding to history', terms);
+			debug('adding to history', terms);
 			return Promise.resolve(userOptions);
 		}
 			
@@ -781,7 +772,7 @@ async function notify(message, sender, sendResponse) {
 			if ( isAllowedURL(sender.tab.url)) {
 				injectContentScripts(sender.tab, sender.frameId);
 			} else {
-				console.log("blacklisted", sender.tab.url);
+				debug("blacklisted", sender.tab.url);
 			}
 			break;
 			
@@ -793,7 +784,7 @@ async function notify(message, sender, sendResponse) {
 					frameId: sender.frameId
 				});
 				
-				console.log("injected quickmenu");
+				debug("injected quickmenu");
 			}
 			
 			if ( userOptions.pageTiles.enabled ) {
@@ -802,7 +793,7 @@ async function notify(message, sender, sendResponse) {
 					frameId: sender.frameId
 				});
 				
-				console.log("injected pagetiles");
+				debug("injected pagetiles");
 			}
 
 			if ( /\/\/mycroftproject.com/.test(sender.tab.url) && userOptions.modify_mycroftproject ) {
@@ -811,7 +802,7 @@ async function notify(message, sender, sendResponse) {
 					frameId: sender.frameId
 				});
 				
-				console.log("injected mycroftproject");
+				debug("injected mycroftproject");
 			}
 			
 			break;
@@ -835,13 +826,13 @@ async function notify(message, sender, sendResponse) {
 		case "addUserStyles": {
 			if ( !userOptions.userStylesEnabled ) return false;
 
-			console.log('adding user styles');
+			debug('adding user styles');
 
 			let style = message.global ? userOptions.userStylesGlobal : userOptions.userStyles;
 
 			if ( !style.trim() ) return false;
 
-			// console.log(message.global, style);
+			// debug(message.global, style);
 
 			return browser.tabs.insertCSS( sender.tab.id, {
 				code: style,
@@ -865,7 +856,7 @@ async function notify(message, sender, sendResponse) {
 			return sendMessageToTopFrame();
 
 		case "openBrowserAction":
-			console.log('openBrowserAction')
+			debug('openBrowserAction')
 			browser.browserAction.openPopup();
 			return;
 
@@ -877,7 +868,7 @@ async function notify(message, sender, sendResponse) {
 			return sendMessageToTopFrame();
 
 		case "minifySideBar":
-			console.log('bg');
+			debug('bg');
 			return sendMessageToTopFrame();
 
 		case "getZoom":
@@ -970,7 +961,7 @@ function checkUserOptionsValueTypes(repair) {
 				console.error('mismatched object types', key, typeof obj[key], typeof obj2[key], obj[key], obj2[key]);
 
 				if ( repair ) {
-					console.log('repairing');
+					debug('repairing');
 					obj2[key] = Object.assign({}, obj[key]);
 				}
 			}
@@ -1046,7 +1037,7 @@ function loadUserOptions() {
 	}
   
 	function onError(error) {
-		console.log(`Error: ${error}`);
+		debug(`Error: ${error}`);
 	}
 
 	var getting = browser.storage.local.get("userOptions");
@@ -1111,7 +1102,7 @@ function openWithMethod(o) {
 				o.index = Math.max(...indexes, active.index) + 1;
 
 			} catch (err) {
-				console.log(err);
+				debug(err);
 			}
 		}
 
@@ -1222,11 +1213,11 @@ function executeOneClickSearch(info) {
 	}
 	
 	function onError(error) {
-		console.log(`Error: ${error}`);
+		debug(`Error: ${error}`);
 	}
 	
 	if ( openMethod === "openSideBarAction" ) {
-		return console.log("one-click search engines cannot be used with sidebaraction");
+		return debug("one-click search engines cannot be used with sidebaraction");
 	}
 	
 	openWithMethod({
@@ -1249,7 +1240,7 @@ function executeOneClickSearch(info) {
 
 			browser.tabs.onUpdated.removeListener(listener);
 
-			console.log('tab took', Date.now() - start );
+			debug('tab took', Date.now() - start );
 
 			// .search.get() requires some delay
 			await new Promise(r => setTimeout(r, 500));
@@ -1296,7 +1287,7 @@ async function executeExternalProgram(info) {
 			return dls[0];
 		});
 
-		console.log(dl);
+		debug(dl);
 	}
 
 	if ( ! await browser.permissions.contains({permissions: ["nativeMessaging"]}) ) {
@@ -1325,7 +1316,7 @@ async function executeExternalProgram(info) {
 		downloadFolder: downloadPath || userOptions.nativeAppDownloadFolder || null 
 	};
 
-	console.log("native app message ->", msg);
+	debug("native app message ->", msg);
 
 	return browser.runtime.sendNativeMessage("contextsearch_webext", msg).then( async result => {
 		if ( node.postScript.trim() ) {
@@ -1364,72 +1355,16 @@ function isValidHttpUrl(str) {
 	return url.protocol === "http:" || url.protocol === "https:";
 }
 
-// function getMultiSearchArray( NODE ) {
-
-// 	let recursionCheck = 0;
-// 	let nodes = [];
-
-// 	getArrayFromTemplate = ( template ) => {
-// 		try {
-// 			let parsed = JSON.parse(template);
-
-// 			if ( Array.isArray(parsed) ) return parsed;
-// 			else return [];
-// 		} catch(error) {
-// 			return [];
-// 		}
-// 	}
-
-// 	traverse = ( node ) => {
-
-// 			if ( node.type !== 'searchEngine' ) return;
-
-// 			let se = userOptions.searchEngines.find(_se => _se.id === node.id );
-
-// 			if ( !se ) return;
-
-// 			let templates = getArrayFromTemplate(se.template);
-
-// 			for ( let url of templates ) {
-
-// 				// if url and not ID
-// 				if ( isValidHttpUrl(url) ) {
-					
-// 					let _se = Object.assign({}, se);
-// 					_se.template = url;
-
-// 					// parse encoding for multi-URLs
-// 					let matches = /{encoding=(.*?)}/.exec(url);
-		
-// 					if ( matches && matches[1] )
-// 						_se.queryCharset = matches[1];
-
-// 					nodes.push(_se);
-
-// 				} else if ( findNode(userOptions.nodeTree, n => n.id === url )) {
-// 					let n = findNode(userOptions.nodeTree, n => n.id === url );
-// 					traverse(n);
-// 					nodes.push(n);
-// 				} else {
-// 					return;
-// 				}
-
-// 				recursionCheck++;
-// 			}
-
-// 		return nodes;
-// }
-
 async function openSearch(info) {
 
 	if ( info.openMethod === "openSideBarAction" ) {
-		console.log('open Firefox sidebar');
+		debug('open Firefox sidebar');
 		browser.sidebarAction.open();
 	}
 	
 	if ( info.node && info.node.type === "folder" ) return folderSearch(info);
 
-	console.log(info);
+	debug(info);
 
 	var searchTerms = (info.searchTerms || info.selectionText || "").trim();
 
@@ -1449,7 +1384,7 @@ async function openSearch(info) {
 	if ( userOptions.preventDuplicateSearchTabs ) {
 		try {
 			let oldTab = await getTabTermsTab(node.id, searchTerms);
-			console.log('tab with same engine and terms exists');
+			debug('tab with same engine and terms exists');
 			return false;
 		} catch ( error ) {}
 	}
@@ -1477,7 +1412,7 @@ async function openSearch(info) {
 						if ( !_confirm[0] ) return;
 					}
 				} catch ( err ) { // can't inject a confirm dialog
-					console.log(err);
+					debug(err);
 					return;
 				}
 			}
@@ -1501,22 +1436,22 @@ async function openSearch(info) {
 	}
 
 	if ( node && node.type === "oneClickSearchEngine" ) {
-		console.log("oneClickSearchEngine");
+		debug("oneClickSearchEngine");
 		return executeOneClickSearch(info);
 	}
 	
-	//if (browser.bookmarks !== undefined && !userOptions.searchEngines.find( se => se.id === info.menuItemId ) && !info.openUrl ) {
+	//if (browser.bookmarks !== undefined && !findNode(userOptions.nodeTree,  n => n.id === info.menuItemId ) && !info.openUrl ) {
 	if ( node && node.type === "bookmarklet" ) {
-		console.log("bookmarklet");
+		debug("bookmarklet");
 		return executeBookmarklet(info);
 	}
 
 	if ( node && node.type === "externalProgram" ) {
-		console.log("externalProgram");
+		debug("externalProgram");
 		return executeExternalProgram(info);
 	}
 
-	var se = (node && node.id ) ? temporarySearchEngine || userOptions.searchEngines.find(_se => _se.id === node.id ) : temporarySearchEngine || null;
+	var se = (node && node.id ) ? temporarySearchEngine || findNode(userOptions.nodeTree, n => n.id === node.id ) : temporarySearchEngine || null;
 
 	if ( !se && !openUrl) return false;
 	
@@ -1550,7 +1485,7 @@ async function openSearch(info) {
 					_info.menuItemId = url;
 					_info.node = findNode(userOptions.nodeTree, n => n.id === url );
 				} else {
-					console.log('url invalid', url);
+					debug('url invalid', url);
 					return;
 				}
 				openSearch(_info);
@@ -1564,7 +1499,7 @@ async function openSearch(info) {
 			return;
 			
 		} catch (error) {
-		//	console.log(error);
+		//	debug(error);
 		}
 	}
 	
@@ -1644,14 +1579,14 @@ async function openSearch(info) {
 			window.folderWindowId = _tab.id;
 			_tab = _tab.tabs[0];
 			
-			console.log('window created');
+			debug('window created');
 		}
 
 		try {
 			if ( !info.multiURL )
 				addTabTerms(node, _tab.id, searchTerms);
 		} catch (err) {
-			console.log(err);
+			debug(err);
 		}
 
 		browser.tabs.onUpdated.addListener(async function listener(tabId, changeInfo, __tab) {
@@ -1716,13 +1651,13 @@ async function openSearch(info) {
 	}
 	
 	function onError(error) {
-		console.log(`Error: ${error}`);
+		debug(`Error: ${error}`);
 	}
 
 }
 
 function addTabTerms(node, tabId, s) {
-	console.log('tabTerms add', node.title);
+	debug('tabTerms add', node.title);
 	window.tabTerms.unshift({id: node.id, folderId: node.parentId, tabId: tabId, searchTerms: s});
 }
 
@@ -1854,7 +1789,7 @@ async function highlightSearchTermsInTab(tab, searchTerms) {
 function getAllOpenTabs() {
 	
 	function onGot(tabs) { return tabs; }
-	function onError(error) { console.log(`Error: ${error}`); }
+	function onError(error) { debug(`Error: ${error}`); }
 
 	var querying = browser.tabs.query({});
 	return querying.then(onGot, onError);
@@ -1881,7 +1816,7 @@ function encodeCharset(string, encoding) {
 
 		return {ascii: ascii_string, uri: uri_string};
 	} catch (error) {
-		console.log(error.message);
+		debug(error.message);
 		return {ascii: string, uri: string};
 	}
 }
@@ -1893,7 +1828,7 @@ function updateUserOptionsVersion(uo) {
 	// v1.1.0 to v 1.2.0
 	return browser.storage.local.get("searchEngines").then( result => {
 		if (typeof result.searchEngines !== 'undefined') {
-			console.log("-> 1.2.0");
+			debug("-> 1.2.0");
 			uo.searchEngines = result.searchEngines || uo.searchEngines;
 			browser.storage.local.remove("searchEngines");
 		}
@@ -1904,7 +1839,7 @@ function updateUserOptionsVersion(uo) {
 		// v1.2.4 to v1.2.5
 		if (_uo.backgroundTabs !== undefined && _uo.swapKeys !== undefined) {
 			
-			console.log("-> 1.2.5");
+			debug("-> 1.2.5");
 			
 			if (_uo.backgroundTabs) {
 				_uo.contextMenuClick = "openBackgroundTab";
@@ -1928,7 +1863,7 @@ function updateUserOptionsVersion(uo) {
 		//v1.5.8
 		if (_uo.quickMenuOnClick !== undefined) {
 			
-			console.log("-> 1.5.8");
+			debug("-> 1.5.8");
 			
 			if (_uo.quickMenuOnClick)
 				_uo.quickMenuOnMouseMethod = 'click';
@@ -1950,17 +1885,17 @@ function updateUserOptionsVersion(uo) {
 
 		if (i18n("ContextSearchMenu") === "ContextSearch Menu") return _uo;
 		
-		console.log("-> 1.6.0");
+		debug("-> 1.6.0");
 		
 		browser.bookmarks.search({title: "ContextSearch Menu"}).then( bookmarks => {
 
 			if (bookmarks.length === 0) return _uo;
 
-			console.log('New locale string for bookmark name. Attempting to rename');
+			debug('New locale string for bookmark name. Attempting to rename');
 			return browser.bookmarks.update(bookmarks[0].id, {title: i18n("ContextSearchMenu")}).then(() => {
-				console.log(bookmarks[0]);
+				debug(bookmarks[0]);
 			}, error => {
-				console.log(`An error: ${error}`);
+				debug(`An error: ${error}`);
 			});
 
 		});
@@ -1971,7 +1906,7 @@ function updateUserOptionsVersion(uo) {
 		// version met
 		if (_uo.nodeTree.children) return _uo;
 	
-		console.log("-> 1.8.0");
+		debug("-> 1.8.0");
 	
 		function buildTreeFromSearchEngines() {
 			let root = {
@@ -2018,13 +1953,13 @@ function updateUserOptionsVersion(uo) {
 				let seTree = buildTreeFromSearchEngines();
 
 				if (_uo.quickMenuBookmarks) {
-					console.log("BM tree + SE tree");
+					debug("BM tree + SE tree");
 					bmTree.children = bmTree.children.concat({type:"separator"}, seTree.children);
 
 					_uo.nodeTree = bmTree;
 					
 				} else {
-					console.log("SE tree + BM tree");
+					debug("SE tree + BM tree");
 					seTree.children = seTree.children.concat({type:"separator"}, bmTree.children);
 
 					_uo.nodeTree = seTree;
@@ -2042,7 +1977,7 @@ function updateUserOptionsVersion(uo) {
 		
 		// fix for 1.8.1 users
 		if ( _uo.quickMenuItems != undefined && _uo.quickMenuRows != undefined) {
-			console.log('deleting quickMenuItems for 1.8.1 user');
+			debug('deleting quickMenuItems for 1.8.1 user');
 			delete _uo.quickMenuItems;
 			return _uo;
 		}
@@ -2067,7 +2002,7 @@ function updateUserOptionsVersion(uo) {
 		
 		if (!_uo.searchEngines.find(se => se.hotkey) ) return _uo;
 		
-		console.log("-> 1.8.2");
+		debug("-> 1.8.2");
 		
 		_uo.searchEngines.forEach( se => {
 			if (se.hotkey) {
@@ -2086,7 +2021,7 @@ function updateUserOptionsVersion(uo) {
 		
 		if ( !_uo.sideBar.type ) return _uo;
 		
-		console.log("-> 1.9.7");
+		debug("-> 1.9.7");
 		
 		_uo.sideBar.windowType = _uo.sideBar.type === 'overlay' ? 'undocked' : 'docked';
 		delete _uo.sideBar.type;
@@ -2103,7 +2038,7 @@ function updateUserOptionsVersion(uo) {
 		
 		if ( index === -1 ) return _uo;
 
-		console.log("-> 1.14");
+		debug("-> 1.14");
 		
 		_uo.searchEngines[index].query_string = "https://www.ebay.com/sch/i.html?_nkw={searchTerms}";
 
@@ -2113,7 +2048,7 @@ function updateUserOptionsVersion(uo) {
 		
 		if ( _uo.nodeTree.id ) return _uo;
 		
-		console.log("-> 1.19");
+		debug("-> 1.19");
 		
 		findNodes(_uo.nodeTree, node => {
 			if ( node.type === "folder" && !node.id )
@@ -2132,7 +2067,7 @@ function updateUserOptionsVersion(uo) {
 			if ( se.query_string ) {
 				
 				if ( se.query_string.length > se.template.length) {
-					console.log("replacing template with query_string", se.template, se.query_string);
+					debug("replacing template with query_string", se.template, se.query_string);
 					arr[index].template = arr[index].query_string;
 				}
 				
@@ -2144,7 +2079,7 @@ function updateUserOptionsVersion(uo) {
 			}
 		});
 
-		if ( flag ) console.log("-> 1.27");
+		if ( flag ) debug("-> 1.27");
 
 		return _uo;	
 	}).then( _uo => {
@@ -2158,7 +2093,7 @@ function updateUserOptionsVersion(uo) {
 				key.id = 4;
 				key.enabled = enabled;
 
-				console.log('userShortcuts', _uo.userShortcuts);
+				debug('userShortcuts', _uo.userShortcuts);
 
 				let us_index = _uo.userShortcuts.findIndex(s => s.id === 4 );
 				if ( us_index !== -1 ) _uo.userShortcuts[us_index] = key;
@@ -2179,11 +2114,11 @@ function updateUserOptionsVersion(uo) {
 				if ( us ) _uo.userShortcuts[_uo.userShortcuts.indexOf(us)] = key;
 				else _uo.userShortcuts.push(key);
 			}
-			console.log("-> 1.29");
+			debug("-> 1.29");
 		}
 
 		if ( !_uo.highLight.styles.find(s => s.background !== "#000000" && s.color !== "#000000") ) {
-			console.log('resetting highLight.styles');
+			debug('resetting highLight.styles');
 			_uo.highLight.styles = defaultUserOptions.highLight.styles; 
 			_uo.highLight.activeStyle = defaultUserOptions.highLight.activeStyle; 
 		}
@@ -2199,10 +2134,10 @@ function updateUserOptionsVersion(uo) {
 
 			if ( n.groupFolder === true ) {
 				n.groupFolder = "inline";
-				console.log(n.title, "groupFolder changed to inline");
+				debug(n.title, "groupFolder changed to inline");
 			} else if ( n.groupFolder === "none" ) {
 				n.groupFolder = false;
-				console.log(n.title, "groupFolder changed to false");
+				debug(n.title, "groupFolder changed to false");
 			}
 		});
 
@@ -2257,19 +2192,58 @@ function updateUserOptionsVersion(uo) {
 		}
 		return _uo;
 	}).then( _uo => {
-		if ( _uo.quickMenuUseOldStyle ) {
+		if (  _uo.hasOwnProperty("quickMenuUseOldStyle" ) ) {
 			_uo.quickMenuDefaultView = _uo.quickMenuUseOldStyle ? 'text' : 'grid';
-		//	delete _uo.quickMenuUseOldStyle;
+			delete _uo.quickMenuUseOldStyle;
+
+			debug("removing quickMenuUseOldStyle");
 		}
 
-		if ( _uo.searchBarUseOldStyle ) {
+		if ( _uo.hasOwnProperty("searchBarUseOldStyle" ) ) {
 			_uo.searchBarDefaultView = _uo.searchBarUseOldStyle ? 'text' : 'grid';
-		//	delete _uo.searchBarUseOldStyle;
+			delete _uo.searchBarUseOldStyle;
+
+			debug("removing searchBarUseOldStyle");
 		}
 
 		return _uo;
 	}).then( _uo => {
-		console.log('Done ->', _uo.version, Date.now() - start);
+
+		// unify nodeTree and searchEngines
+		if ( _uo.searchEngines.length ) {
+			for ( let se of _uo.searchEngines ) {
+				let nodes = findNodes(_uo.nodeTree, n => n.id === se.id );
+
+				if ( !nodes.length ) continue;
+				else {
+					Object.assign(nodes[0], se);
+
+					nodes.forEach( (n,i) => {
+						if ( i == 0 ) return;
+
+						for ( let key in n )
+							delete n[key];
+
+						Object.assign(n, {
+							type: "shortcut",
+							id: gen(),
+							referenceId: se.id
+						});
+
+						debug('shotcut', se.title);
+					});
+
+				}
+			}
+
+			_uo.searchEngines = [];
+
+			debug("-> 1.47");
+		}
+		
+		return _uo;
+	}).then( _uo => {
+		debug('Done ->', _uo.version, Date.now() - start);
 		return _uo;
 	});
 }
@@ -2293,7 +2267,7 @@ async function checkForOneClickEngines() {
 	
 	// don't add before nodeTree is populated
 	if ( !Object.keys(userOptions.nodeTree).length ) {
-		console.log('empty nodeTree - aborting one-click check');
+		debug('empty nodeTree - aborting one-click check');
 		return -1;
 	}
 
@@ -2313,7 +2287,7 @@ async function checkForOneClickEngines() {
 			id: gen()
 		}
 
-		console.log('adding One-Click engine ' + engine.name);
+		debug('adding One-Click engine ' + engine.name);
 		userOptions.nodeTree.children.push(node);
 		
 		newEngineCount++;
@@ -2362,7 +2336,6 @@ function dataToSearchEngine(data) {
 		"searchForm": data.origin, 
 		"icon_url": data.favicon_href || data.origin + "/favicon.ico",
 		"title": data.name || data.title,
-		"order":userOptions.searchEngines.length, 
 		"icon_base64String": "", 
 		"method": data.method, 
 		"params": params, 
@@ -2394,7 +2367,7 @@ function readOpenSearchUrl(url) {
 		let parsed = new DOMParser().parseFromString(text, 'application/xml');
 
 		if (parsed.documentElement.nodeName=="parsererror") {
-			console.log('xml parse error');
+			debug('xml parse error');
 			clearTimeout(t);
 			resolve(false);
 		}
@@ -2475,7 +2448,7 @@ function isAllowedURL(_url) {
 			try {
 				let regex = new RegExp(pattern);
 				if ( regex.test(url.href)) {
-					console.log(url.href + " matches " + pattern);
+					debug(url.href + " matches " + pattern);
 					return false;
 				}
 				continue;
@@ -2485,13 +2458,13 @@ function isAllowedURL(_url) {
 			try {
 				let regex = new RegExp(pattern.replace(/\*/g, "[^ ]*").replace(/\./g, "\\."));
 				if ( regex.test(url.hostname) || regex.test(url.href)) {
-					console.log(url.href + " matches " + pattern);
+					debug(url.href + " matches " + pattern);
 					return false;
 				}
 				continue;
 			} catch (err) {}
 		}
-	} catch (err) { console.log('bad url for tab', _url)}
+	} catch (err) { debug('bad url for tab', _url)}
 
 	return true;
 }
@@ -2506,12 +2479,12 @@ async function injectContentScripts(tab, frameId) {
 
 	let check = await browser.tabs.executeScript(tab.id, { code: "window.hasRun", matchAboutBlank:false, frameId: frameId });
 	if ( check[0] && check[0] === true ) {
-		console.log('already injected', tab.url, frameId);
+		debug('already injected', tab.url, frameId);
 		return;
 	}
 
 	onFound = () => {}
-	onError = (err) => {console.log(err, tab.url)}
+	onError = (err) => {debug(err, tab.url)}
 
 	// inject into any frame
 	[
@@ -2572,7 +2545,7 @@ function waitOnInjection(tabId) {
 
 					if ( result[0] ) {
 						cleanup();
-						console.log(`waitOnInjection (tab ${tabId}) took ${Date.now() - start}ms`);
+						debug(`waitOnInjection (tab ${tabId}) took ${Date.now() - start}ms`);
 						r(true);
 					}
 
@@ -2592,7 +2565,7 @@ async function scrapeBookmarkIcons() {
 		if ( n.type !== 'bookmark') return false;
 		browser.bookmarks.get(n.id).then( bm => {
 			bm = bm.shift();
-			console.log(bm);
+			debug(bm);
 			fetchFavicon(bm.url);
 		})
 		
@@ -2600,24 +2573,24 @@ async function scrapeBookmarkIcons() {
 
 	async function fetchFavicon(_url) {
 
-		console.log(_url);
+		debug(_url);
 
 		try {
 
 			let url = new URL(_url);
-			console.log('fetching', url.origin);
+			debug('fetching', url.origin);
 			var response = await fetch(url.origin + "/favicon.ico");
 			switch (response.status) {
 				// status "OK"
 				case 200:
-					console.log(url.origin + "/favicon.ico found!");
+					debug(url.origin + "/favicon.ico found!");
 					// var template = await response.text();
 
-					// console.log(template);
+					// debug(template);
 					break;
 				// status "Not Found"
 				case 404:
-					console.log('Not Found');
+					debug('Not Found');
 					break;
 			}
 		} catch ( error ) {}
@@ -2630,11 +2603,11 @@ async function scrapeBookmarkIcons() {
     //     case 200:
     //         var template = await response.text();
 
-    //         console.log(template);
+    //         debug(template);
     //         break;
     //     // status "Not Found"
     //     case 404:
-    //         console.log('Not Found');
+    //         debug('Not Found');
     //         break;
     // }
 }
