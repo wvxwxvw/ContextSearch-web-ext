@@ -90,18 +90,38 @@ function buildSearchEngineContainer() {
 
 		})();
 
+		if ( node.type === 'shortcut' ) {
+
+			let referenceNode = findNode(userOptions.nodeTree, n => n.id === node.referenceId );
+
+			if ( !referenceNode ) return;
+
+			let icon = document.createElement('img');
+			icon.src = getIconFromNode(referenceNode);
+			header.appendChild(icon);
+			
+			let text = document.createElement('span');
+			text.className = "label";
+			text.innerText = referenceNode.title;
+			header.appendChild(text);
+
+			li.addEventListener('dblclick', e => {
+				document.querySelector(`li[data-nodeid='${referenceNode.id}']`).dispatchEvent(new MouseEvent('dblclick'));
+			});
+
+			let tool = createMaskIcon('icons/external_link.svg');
+			tool.style.height = '1em';
+			tool.style.verticalAlign = 'middle';
+			tool.title = i18n("Shortcut");
+			header.appendChild(tool);
+		}
+
 		if (node.type === 'searchEngine' || node.type === 'siteSearchFolder' ) {
 			
-			let se = userOptions.searchEngines.find( _se => _se.id === node.id );
-			
-			if (se === undefined) {
-				console.log('engine not found for ' + node.title + '(' + (node.id) + ')');
-				li.parentNode.removeChild(li);
-				return;
-			}
+			let se = node;
 
 			// se stores descriptions vs node ( sometimes / needs work )
-			header.title = node.description || se.description || node.title;
+			header.title = node.description || node.title;
 
 			// force typecast as search engine
 			se.type = 'searchEngine';
@@ -128,9 +148,7 @@ function buildSearchEngineContainer() {
 				e.stopPropagation();
 
 				addFormListeners(edit_form);
-				
-				let se = userOptions.searchEngines.find( se => se.id === node.id );
-			
+							
 				function clearError( element ) {
 					if ( 
 						element 
@@ -171,9 +189,9 @@ function buildSearchEngineContainer() {
 				function checkFormValues() {
 	
 					// correct for case
-					[edit_form.template, edit_form.post_params].forEach( el => {
-						el.value = el.value.replace(/{searchterms}/i, "{searchTerms}");
-					});
+					// [edit_form.template, edit_form.post_params].forEach( el => {
+					// 	el.value = el.value.replace(/{searchterms}/i, "{searchTerms}");
+					// });
 					
 					return new Promise( (resolve, reject) => {
 					
@@ -183,7 +201,7 @@ function buildSearchEngineContainer() {
 						}
 						if (edit_form.shortName.value != li.node.title) {
 							
-							if (userOptions.searchEngines.find( _se => _se.title == edit_form.shortName.value) ) {
+							if (findNode(userOptions.nodeTree, _se => _se.title == edit_form.shortName.value) ) {
 								showError(edit_form.shortName,i18n('NameExists'));
 								resolve(false);
 							}
@@ -1453,8 +1471,8 @@ function buildSearchEngineContainer() {
 		// flag if opened from button vs context menu
 		let buttonAdd = e.target === document.querySelector('#b_addSearchEngine') ? true : false;
 		if ( buttonAdd && !li ) {
+			li = window.selectedRows[0] || document.querySelector('#managerContainer ul').lastChild.previousSibling;
 			// second-to-last row. Last row is blank
-			li = document.querySelector('#managerContainer ul').lastChild.previousSibling;
 		}
 		
 		closeContextMenus();
@@ -1463,7 +1481,7 @@ function buildSearchEngineContainer() {
 		// menu.id = "contextMenu";
 		menu.className = "contextMenu";
 		
-		function createMenuItem(name, icon) {
+		function createMenuItem(name, icon, hasMenus) {
 			let menuItem = document.createElement('div');
 
 			let img = createMaskIcon(icon);
@@ -1474,6 +1492,12 @@ function buildSearchEngineContainer() {
 			span.innerText = name;
 			
 			menuItem.appendChild(span);
+
+			if ( hasMenus ) {
+				let arrow = createMaskIcon('icons/back.svg');
+				arrow.classList.add('forward');
+				menuItem.appendChild(arrow);
+			}
 			
 			menuItem.addEventListener('click', e => {
 				if ( menuItem.disabled ) {
@@ -1525,7 +1549,8 @@ function buildSearchEngineContainer() {
 				separator: "separator.svg",
 				tool: "add.svg",
 				siteSearchFolder: "search.svg",
-				externalProgram: "terminal.svg"
+				externalProgram: "terminal.svg",
+				shortcut: "external_link.svg"
 			}
 			
 			// build delete message from objectsToDelete
@@ -1546,7 +1571,7 @@ function buildSearchEngineContainer() {
 			
 			// position to the right of opening div
 			let rect = _delete.getBoundingClientRect();
-			_menu.style.left = rect.x + window.scrollX + rect.width - 20 + "px";
+			_menu.style.left = rect.right + window.scrollX - 6 + "px";
 			_menu.style.top = rect.y + window.scrollY + "px";
 
 			// add menu items
@@ -1565,15 +1590,7 @@ function buildSearchEngineContainer() {
 		edit.addEventListener('click', e => {
 			e.stopPropagation();
 
-			if ( li.node.type === 'searchEngine')
-				li.dispatchEvent(new MouseEvent('dblclick'));
-			if (li.node.type === 'folder')
-				li.dispatchEvent(new MouseEvent('dblclick'));
-			if (li.node.type === 'bookmarklet')
-				li.dispatchEvent(new MouseEvent('dblclick'));
-			if (li.node.type === 'oneClickSearchEngine')
-				li.dispatchEvent(new MouseEvent('dblclick'));
-			
+			li.dispatchEvent(new MouseEvent('dblclick'));
 			closeContextMenus();
 		});
 		
@@ -1713,7 +1730,7 @@ function buildSearchEngineContainer() {
 				id: gen(),
 				title: "new script",
 				parent: li.node.parent,
-				contexts:[32],
+				contexts:32,
 				toJSON: li.node.toJSON
 			}
 				
@@ -1728,65 +1745,34 @@ function buildSearchEngineContainer() {
 			
 			closeContextMenus();
 		});
+
+		let newShortcut = createMenuItem(i18n('NewShortcut'), browser.runtime.getURL('icons/external_link.svg'));	
+		newShortcut.addEventListener('click', e => {
+
+			let _newNode = {
+				type: "shortcut",
+				id:gen(),
+				referenceId:li.node.id,
+				parent: li.node.parent,
+				toJSON: li.node.toJSON
+			};
+
+			nodeInsertBefore(_newNode, li.node);
+	
+			let newLi = traverse(_newNode, li.parentNode);
+			li.parentNode.insertBefore(newLi, li);
+			
+			updateNodeList(true);
+			closeContextMenus();
+		});
 		
 		let copy = createMenuItem(i18n('Copy'), browser.runtime.getURL('icons/copy.svg'));	
 		copy.addEventListener('click', e => {
 			
 			let newNode;
-			if (li.node.type === 'searchEngine') {
 
-				closeSubMenus();
-				e.stopImmediatePropagation();
-				e.preventDefault();
-				
-				let _menu = document.createElement('div');
-				_menu.className = 'contextMenu subMenu';
-		
-				let rect = copy.getBoundingClientRect();
-				
-				_menu.style.left = rect.x + window.scrollX + rect.width - 20 + "px";
-				_menu.style.top = rect.y + window.scrollY + "px";
-				
-				// add menu items
-				let item1 = document.createElement('div');
-				item1.className = 'menuItem';
-				item1.innerText = i18n('AsShortcut');
-				
-				item1.addEventListener('click', _e => {
-					let _newNode = Object.assign({}, li.node);
-					nodeInsertBefore(_newNode, li.node);
-			
-					let newLi = traverse(_newNode, li.parentNode);
-					li.parentNode.insertBefore(newLi, li);
-					
-					updateNodeList(true);
-					closeContextMenus();
-				});
-				
-				let item2 = document.createElement('div');
-				item2.className = 'menuItem';
-				item2.innerText = i18n('AsNewEngine');
-				
-				item2.addEventListener('click', _e => {
-					let _newNode = addNewEngine(li.node, true);
-					addNode(_newNode, li);
-					
-					updateNodeList(true);
-					closeContextMenus();
-				});
-				
-				[item1, item2].forEach( item => {
-					_menu.appendChild(item);
-				});
-				
-				document.body.appendChild(_menu);
-				openMenu(_menu);
-				return;
-
-			} else {
-				newNode = Object.assign({}, li.node);
-				newNode.id = gen();
-			}
+			newNode = Object.assign({}, li.node);
+			newNode.id = gen();
 			
 			if (!newNode) return;
 			
@@ -1799,7 +1785,7 @@ function buildSearchEngineContainer() {
 			closeContextMenus();
 		});
 		
-		let newEngine = createMenuItem(i18n('NewEngine'), browser.runtime.getURL('icons/new.svg'));	
+		let newEngine = createMenuItem(i18n('NewEngine'), browser.runtime.getURL('icons/search.svg'));	
 		newEngine.addEventListener('click', () => {
 			
 			let newNode = addNewEngine(li.node, false);		
@@ -1837,7 +1823,7 @@ function buildSearchEngineContainer() {
 				id: gen(),
 				path:"/path/to/your/app \"{searchTerms}\"",
 				searchRegex:"",
-				contexts:[32],
+				contexts:32,
 				parent: li.node.parent,
 				toJSON: li.node.toJSON
 			}
@@ -1852,10 +1838,10 @@ function buildSearchEngineContainer() {
 			updateNodeList();
 		});
 
-		let newTool = createMenuItem(i18n('NewTool'), browser.runtime.getURL('icons/add.svg'));	
+		let newTool = createMenuItem(i18n('NewTool'), browser.runtime.getURL('icons/add.svg'), true);
 		newTool.onclick = function(e) {
 
-			closeSubMenus();
+		//	closeSubMenus();
 			e.stopImmediatePropagation();
 			e.preventDefault();
 			
@@ -1864,7 +1850,7 @@ function buildSearchEngineContainer() {
 			
 			// position to the right of opening div
 			let rect = newTool.getBoundingClientRect();
-			_menu.style.left = rect.x + window.scrollX + rect.width - 20 + "px";
+			_menu.style.left = rect.right + window.scrollX - 6 + "px";
 			_menu.style.top = rect.y + window.scrollY + "px";
 
 			QMtools.sort( (a,b) => a.title > b.title ).forEach( t => {
@@ -1893,6 +1879,8 @@ function buildSearchEngineContainer() {
 
 				_menu.appendChild(m);
 			});
+
+
 
 			// _menu.appendChild(document.createElement('br'));
 
@@ -1950,12 +1938,36 @@ function buildSearchEngineContainer() {
 			openMenu(_menu);
 		};
 
+		let newMenu = createMenuItem(i18n('New'), browser.runtime.getURL('icons/add.svg'), true);	
+		newMenu.onclick = function(e) {
+
+			closeSubMenus();
+			e.stopImmediatePropagation();
+			e.preventDefault();
+
+			let _menu = document.createElement('div');
+			_menu.className = 'contextMenu subMenu';
+
+			// position to the right of opening div
+			let rect = newMenu.getBoundingClientRect();
+			_menu.style.left = rect.right + window.scrollX - 6 + "px";
+			_menu.style.top = rect.y + window.scrollY + "px";
+
+			[newEngine, newFolder, newMultisearch, newTool, newSeparator, newScript, newShortcut, newExternalProgram].forEach( t => {
+				let m = t;
+				m.className = 'menuItem';
+				m.click = t.click;
+				_menu.appendChild(m);
+			});
+
+			document.body.appendChild(_menu);
+			openMenu(_menu);
+		}
+
 		let newMultisearch = createMenuItem(i18n('newMultiSearch'), browser.runtime.getURL('icons/repeatsearch.svg'));	
 		newMultisearch.addEventListener('click', e => {
 
 			e.stopImmediatePropagation();
-
-			//console.log(selectedRows.map(r => r.node.title));
 
 			let templates = selectedRows.filter(r => !['siteSearchFolder', 'separator'].includes(r.node.type)).map( r => r.node.id);
 			let names = selectedRows.map( r => r.node.title);
@@ -1965,16 +1977,15 @@ function buildSearchEngineContainer() {
 			if ( newNode ) {
 				let newLi = addNode(newNode, li);
 
-				let se = userOptions.searchEngines.find(se => se.id === newNode.id);
-
-				se.template = JSON.stringify(templates);
-				se.description = JSON.stringify(names);
+				newNode.icon_url = browser.runtime.getURL('icons/page_tiles.svg');
+				newNode.template = JSON.stringify(templates);
+				newNode.description = JSON.stringify(names);
 				updateNodeList(true);
 					
 				newLi.scrollIntoView({block: "start", behavior:"smooth"});
 				newLi.dispatchEvent(new MouseEvent('dblclick'));
 
-				addMultisearchIcons(se, newLi.querySelector(".header"));
+				addMultisearchIcons(newNode, newLi.querySelector(".header"));
 			}
 
 			closeContextMenus();
@@ -2024,12 +2035,48 @@ function buildSearchEngineContainer() {
 			
 		});
 
+		let cut = createMenuItem(i18n('Cut'), browser.runtime.getURL('icons/cut.svg'));	
+		cut.addEventListener('click', e => {
+			window.cutRows = window.selectedRows;
+			closeContextMenus();
+		});
+
+		let paste = createMenuItem(i18n('paste'), browser.runtime.getURL('icons/new.svg'));	
+		paste.addEventListener('click', e => {
+
+			const count = () => findNodes(rootElement.node, n => true).length;
+
+			let count_before = count();
+			window.cutRows.forEach( _li => {
+				let node =  nodeCut(_li.node)
+				nodeInsertBefore(node, li.node);
+				li.parentNode.insertBefore(_li, li);
+			});
+
+			delete window.cutRows;
+
+			let count_after = count();
+
+			if ( count_before !== count_after ) {
+				console.error("lost a node, aborting");
+				return buildSearchEngineContainer();
+			}
+
+			updateNodeList(true);
+			closeContextMenus();
+		});
+
+		const disable = el => {
+			el.disabled = true;
+			el.style.display = 'none';
+		}
+
 		let cbs = document.querySelectorAll('.selectCheckbox:checked');
 
 		if ( cbs.length ) selectedRows = [...cbs].map( cb => cb.closest("LI"));
 
 		// attach options to menu
-		[edit, hide, newFolder, newEngine, newMultisearch, newTool, newExternalProgram, newSeparator, newScript, copy, _delete, exportNodes].forEach( el => {
+		[newMenu, edit, hide, copy, cut, paste, _delete, exportNodes].forEach( el => {
 			el.className = 'menuItem';
 			menu.appendChild(el);
 			el.addEventListener('click', closeContextMenus);
@@ -2037,18 +2084,27 @@ function buildSearchEngineContainer() {
 		
 		// disable some menu items when multiple rows are selected
 		if ( selectedRows.length > 1 ) {
-			[edit, newFolder, newEngine, newSeparator, newScript, copy, newExternalProgram, newTool].forEach( el => {
-				el.disabled = true;
-				el.style.opacity = .5;
+			[edit, newFolder, newEngine, newSeparator, newScript, copy, paste, newExternalProgram, newTool, newShortcut].forEach( el => {
+				disable(el);
 			});
 		}
 
+		// disable some items by type
+		if ( selectedRows[0] && ["folder", "shortcut"].includes(selectedRows[0].node.type)) {
+			disable(newShortcut);
+		}
+
 		if ( selectedRows.length < 2 ) {
-			[newMultisearch].forEach( el => el.style.display = 'none')
+			disable(newMultisearch);
+			// [newMultisearch].forEach( el => el.style.display = 'none')
+		}
+
+		if ( !window.cutRows ) {
+			disable(paste);
 		}
 
 		// remove some options when using button
-		if ( buttonAdd ) [edit, hide, copy, _delete].forEach( el => el.parentNode.removeChild(el));
+		if ( buttonAdd ) [edit, hide, cut, paste, copy, _delete, exportNodes].forEach( el => el.parentNode.removeChild(el));
 
 		menu.style.left = e.pageX + "px";
 		menu.style.top = e.pageY + "px";
@@ -2083,6 +2139,8 @@ function buildSearchEngineContainer() {
 			}
 			document.removeEventListener('click', contextMenuClose);
 		});
+
+		return menu;
 	}
 		
 	function clearSelectedRows() {
@@ -2109,7 +2167,7 @@ function buildSearchEngineContainer() {
 		copy = copy || false;
 		
 		// if node is defined, make copy
-		let se = (copy) ? Object.assign({},userOptions.searchEngines.find( _se => _se.id === node.id )) : false;
+		let se = (copy) ? Object.assign({},node) : false;
 		let default_value = (copy) ? se.title + " copy" : "";
 		
 		let msg = i18n("EnterUniqueName");
@@ -2119,14 +2177,12 @@ function buildSearchEngineContainer() {
 			if (! (shortName = window.prompt(msg, default_value)) || !shortName.trim() ) return;
 
 			let found = false;
-			
-			for (let engine of userOptions.searchEngines) {
-				if (engine.title == shortName) {
-					console.log(engine.title + "\t" + shortName);
-					msg = i18n("EngineExists").replace("%1",engine.title) + " " + i18n("EnterUniqueName");
-					found = true;
-					break;
-				}
+
+			let sameName = findNode(userOptions.nodeTree, n => n.type === "searchEngine" && n.title === shortName);
+			if ( sameName ) {
+				console.log(engine.title + "\t" + shortName);
+				msg = i18n("EngineExists").replace("%1",engine.title) + " " + i18n("EnterUniqueName");
+				found = true;
 			}
 			
 			if ( !found ) break;
@@ -2135,13 +2191,11 @@ function buildSearchEngineContainer() {
 		if (se) {
 			se.title = shortName;
 			se.id = gen();
-			userOptions.searchEngines.push(se);
 		} else {
 			se = {
 				"searchForm": "", 
 				"icon_url":"",
 				"title":shortName,
-				"order":userOptions.searchEngines.length, 
 				"icon_base64String": "", 
 				"method": "GET", 
 				"params": "", 
@@ -2150,24 +2204,24 @@ function buildSearchEngineContainer() {
 				"hidden": false,
 				"id": gen()
 			}
-			
-			userOptions.searchEngines.push(se);
 		}
-		
-		return {
-			title: se.title,
+
+		Object.assign(se, {
 			type: "searchEngine",
 			parent: node.parent,
 			hidden: false,
-			id: se.id,
-			contexts:[32],
+			contexts:32,
 			toJSON: node.toJSON
-		}
+		});
+
+		return se;
 	}
 	
 	document.getElementById('b_addSearchEngine').addEventListener('click', e => {
 		e.stopPropagation();
-		contextMenuHandler(e);
+		let menu = contextMenuHandler(e);
+		menu.querySelector(`.menuItem`).click();
+
 	});
 	
 	document.getElementById('b_resetAllSearchEngines').addEventListener('click', async() => {
@@ -2175,16 +2229,15 @@ function buildSearchEngineContainer() {
 		if ( !confirm(i18n("ConfirmResetAllSearchEngines")) ) return;
 		
 		let w = await browser.runtime.getBackgroundPage();
-		userOptions.nodeTree.children = [];	
-		
-		// reset searchEngines to defaults
-		userOptions.searchEngines = w.defaultEngines;
-		
+
+		// reset tree with default engines
+		userOptions.nodeTree.children = defaultEngines;
+				
 		// build nodes with default engines
 		repairNodeTree(userOptions.nodeTree);
 		
 		// unhide all default engines
-		findNodes( userOptions.nodeTree, node => node.hidden = false );
+	//	findNodes( userOptions.nodeTree, node => node.hidden = false );
 
 		// updated the background page UO
 		w.userOptions = userOptions;
@@ -2194,7 +2247,7 @@ function buildSearchEngineContainer() {
 			
 		// updated the local UO
 		userOptions = w.userOptions;
-		await saveOptions();
+		await _saveOptions();
 		location.reload();
 	});
 

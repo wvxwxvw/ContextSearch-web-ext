@@ -1653,7 +1653,7 @@
   },
   
   "SearchCode": {
-    "message": "Post-Search Script",
+    "message": "Results Page Script",
     "description": ""
   },
   
@@ -2330,7 +2330,7 @@
     "description": "blocklist tooltip"
   },
   "NewTool": {
-    "message": "Add Tool"
+    "message": "New Tool"
   },
   "BackButton": {
     "message": "Back Button"
@@ -2534,5 +2534,18 @@
   },
   "searchActionConflict": {
     "message": "This setting conflicts with another"
+  },
+  "NewShortcut": {
+    "message": "New Shortcut"
+  },
+  "Cut": {
+    "message": "Cut"
+  },
+  "Paste": {
+    "message": "Paste"
+  },
+  "New": {
+    "message": "New"
   }
+
 }
