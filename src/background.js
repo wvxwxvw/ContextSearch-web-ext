@@ -66,6 +66,8 @@ browser.tabs.onActivated.addListener(info => {
 browser.runtime.onMessage.addListener(notify);
 
 browser.runtime.onInstalled.addListener( details => {
+
+
  
 	// details.reason = 'install';
 	// Show new features page
@@ -458,7 +460,7 @@ async function notify(message, sender, sendResponse) {
 				
 				if ( engines.find(e => e.name === title) ) {
 					await browser.tabs.executeScript(sender.tab.id, {
-						code: `alert(i18n("FFEngineExists", "${title}"));`
+						code: `alert("${i18n("FFEngineExists", title)}");`
 					});
 					return;
 				}
