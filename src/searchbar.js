@@ -189,19 +189,19 @@ async function sideBarResize(o) {
 
 	if ( window == top ) return;
 
+	// throwing sidebar errors
 	// prevent errors before qm loaded
-	if ( !qm.rootNode ) return;
+	if ( !qm || !qm.rootNode ) return;
 
 	// remove min-width for single columns
 	if (qm.singleColumn) qm.style.minWidth = null;
 
-	qm.insertBreaks();
+	document.body.style.width = null;
+	document.body.style.height = null;
 
-//	document.body.style.width = screen.width + "px";
-	document.body.width = null;
-	document.body.height = null;
-	document.body.getBoundingClientRect();
-	document.body.style.width = document.body.scrollWidth + "px";
+	// [tb,sbc,mb,ctb,toolBar].forEach( el => { 
+	// 	if (el) el.style.display = 'none';
+	// });
 
 	// simple resize when mini
 	if ( document.body.classList.contains('mini') ) {
@@ -212,12 +212,9 @@ async function sideBarResize(o) {
 			tileSize: qm.getTileSize()
 		}, "*");
 	}
+
+	qm.insertBreaks();
 	
-	// throwing sidebar errors
-	if ( !qm ) return;
-
-	if ( !o.more ) toolsBarMorify(userOptions.sideBarToolbarRows);
-
 	let maxWindowHeight = screen.height;
 
 	let qm_height = qm.style.height;
@@ -228,12 +225,16 @@ async function sideBarResize(o) {
 	
 	qm.style.width = null;
 	qm.style.height = null;
+	qm.style.overflowY = 'auto';
 
+	// hide block groups
+	qm.querySelectorAll('group.block').forEach(g => g.style.display = 'none');
 	document.documentElement.style.setProperty('--iframe-body-width', qm.getBoundingClientRect().width + "px");	
+	qm.querySelectorAll('group.block').forEach(g => g.style.display = null);
 
 	let allOtherElsHeight = getAllOtherHeights(true);
 
-	qm.style.height = function() {
+	const setHeight = () => {
 		
 		if ( docked ) return `calc(100% - ${allOtherElsHeight}px)`;
 
@@ -242,24 +243,26 @@ async function sideBarResize(o) {
 		// if ( o.more ) return qm.getBoundingClientRect().height + "px";
 		
 		return Math.min(iframeHeight - allOtherElsHeight, qm.getBoundingClientRect().height) + "px";
-	}();
+	}
 
 	qm.style.width = qm.getBoundingClientRect().width + "px";
 
-	document.body.style.width = null;
+	if ( !o.more ) {
+		toolsBarMorify(userOptions.sideBarToolbarRows);
+	}
 
-	document.documentElement.style.setProperty('--iframe-body-width', qm.offsetWidth + "px");
-
-	qm.removeBreaks();
+	// reset height after tools menu
+	qm.style.height = setHeight();
 
 	// account for scrollbars
-	let scrollbarWidth = qm.offsetWidth - qm.clientWidth + 1; // account for fractions
-	qm.style.width = qm.getBoundingClientRect().width + scrollbarWidth + "px";
+	let scrollbarWidth = qm.offsetWidth - qm.clientWidth; // account for fractions
 
-	toolBar.style.width = qm.style.width;
+	qm.style.width = qm.getBoundingClientRect().width + scrollbarWidth + 4 + "px";
 
 	// apply min-width for subfolders
 	if ( !qm.rootNode.parent && userOptions.sideBar.setMinWidth ) qm.setMinWidth();
+
+	//qm.removeBreaks();
 
 	window.parent.postMessage({
 		action:"resizeSideBarIframe", 
@@ -309,47 +312,50 @@ async function makeAddEngineBar() {
 
 	for ( ose of oses ) {
 
-		let div = document.createElement('div');
-		let img = new Image();
-		div.innerText = " ";
-		div.style.display = 'none';
-		div.insertBefore(img, div.firstChild);
-		div.title = i18n("AddCustomSearch");
-		aeb.appendChild(div);
+		try {
 
-		let xml_se = await browser.runtime.sendMessage({action: "openSearchUrlToSearchEngine", url: ose.href}).then( details => {
-			return (!details) ? null : details.searchEngines[0];
-		});
-
-		if ( !xml_se || userOptions.searchEngines.find( _se => _se.title === xml_se.title) ) {
-			return div.parentNode.removeChild(div);
-		}
-
-		img.src = xml_se.icon_url || browser.runtime.getURL('icons/transparent.gif');
-
-		div.innerText = xml_se.title;
-
-		div.insertBefore(img, div.firstChild);
-
-		let osi = new Image();
-		osi.src = 'icons/opensearch.svg';
-		div.insertBefore(osi, div.firstChild);
-
-		div.style.display = null;
-
-		div.onclick = async() => {
-			return browser.runtime.sendMessage({action: "openCustomSearch", se: xml_se});
-		}
-
-		// has openSearch icon
-		(() => {
+			let div = document.createElement('div');
 			let img = new Image();
-			img.src = 'icons/opensearch.svg';
-			img.className = 'opensearchIcon';
-			let si = document.getElementById('searchIcon');
-			si.parentNode.insertBefore(img, si.nextSibling);
+			div.innerText = " ";
+			div.style.display = 'none';
+			div.insertBefore(img, div.firstChild);
+			div.title = i18n("AddCustomSearch");
+			aeb.appendChild(div);
 
-		})();
+			let xml_se = await browser.runtime.sendMessage({action: "openSearchUrlToSearchEngine", url: ose.href}).then( details => {
+				return (!details) ? null : details.searchEngines[0];
+			});
+
+			if ( !xml_se || findNode( userOptions.nodeTree, _se => _se.type === 'searchEngine' && _se.title === xml_se.title) ) {
+				return div.parentNode.removeChild(div);
+			}
+
+			img.src = xml_se.icon_url || browser.runtime.getURL('icons/transparent.gif');
+
+			div.innerText = xml_se.title;
+
+			div.insertBefore(img, div.firstChild);
+
+			let osi = new Image();
+			osi.src = 'icons/opensearch.svg';
+			div.insertBefore(osi, div.firstChild);
+
+			div.style.display = null;
+
+			div.onclick = async() => {
+				return browser.runtime.sendMessage({action: "openCustomSearch", se: xml_se});
+			}
+
+			// has openSearch icon
+			(() => {
+				let img = new Image();
+				img.src = 'icons/opensearch.svg';
+				img.className = 'opensearchIcon';
+				let si = document.getElementById('searchIcon');
+				si.parentNode.insertBefore(img, si.nextSibling);
+
+			})();
+		} catch (error) { console.log(error) }
 	}
 
 	resizeMenu();
@@ -393,6 +399,10 @@ window.addEventListener('message', e => {
 
 		case "minifySideBar":
 			minifySideBar();
+			break;
+
+		case "editEnd":
+			QMtools.find(t => t.name === "edit").action({forceOff: true});
 			break;
 	}
 });
