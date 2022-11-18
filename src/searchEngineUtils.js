@@ -6,7 +6,7 @@ function searchJsonObjectToArray(engines) {
 	for (var engine of engines) {
 
 		if ( !engine._urls ) {
-			console.log('no data', engine._name);
+			console.warn(`no template for "${engine._name}" ...skipping`);
 			continue;
 		}
 		
@@ -56,6 +56,8 @@ function searchJsonObjectToArray(engines) {
 		if(a.order > b.order) return 1;
 		return 0;
 	});
+
+	searchEngines.forEach( se => delete se.order );
 	
 	return searchEngines;
 }
