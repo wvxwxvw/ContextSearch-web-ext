@@ -208,6 +208,8 @@ function makeDockable(el, options) {
 	
 	function doOffset(notBody) {
 
+		return;
+
 		runAtTransitionEnd(el, ["width","height","max-width","max-height"], () => {
 			
 			let rect = el.getBoundingClientRect();
