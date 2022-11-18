@@ -106,40 +106,12 @@ function repairNodeTree(tree) {
 	
 	let repaired = false;
 	
-	// append orphans
-	for (let se of userOptions.searchEngines) {
-
-		if (!se.id || findNodes(tree, node => node.id === se.id).length === 0) {
-			
-			repaired = true;
-			
-			if (!se.id) {
-				console.log(se.title + ' has no id. Generating...');
-				se.id = gen();
-			}
-			
-			console.log(se.id + " is not in node tree. Appending ...");
-			tree.children.push({
-				id: se.id,
-				type: "searchEngine",
-				hidden: true,
-				title: se.title
-			});
-		}
-	}
-
 	let nodesToRemove = findNodes(tree, (node, parent) => {
 		
 		if ( !node ) {
 			node.parent = parent;
 			console.log('removing null node');
 			return true;
-		}
-
-		if ( node.type === 'searchEngine' && !userOptions.searchEngines.find( se => se.id === node.id ) ) {
-			node.parent = parent;
-			console.log('removing dead search engine node ' + node.title);
-			return true;	
 		}
 
 		if ( node.type === 'siteSearchFolder') {
@@ -185,9 +157,7 @@ function getIconFromNode(node) {
 	let iconUrl = (() => {
 	
 		if ( node.type === "searchEngine" || node.type === "siteSearch" || node.type === "siteSearchFolder") {
-			let se = userOptions.searchEngines.find( se => se.id === node.id );
-			if ( !se ) return browser.runtime.getURL('icons/search.svg');
-			return se.icon_base64String || se.icon_url || browser.runtime.getURL('icons/search.svg');
+			return node.icon_base64String || node.icon_url || browser.runtime.getURL('icons/search.svg');
 		} else if ( node.type === "bookmarklet" ) {
 			return node.icon || browser.runtime.getURL('icons/code_color.svg');
 		} else if ( node.type === "folder" ) {
@@ -207,9 +177,9 @@ function nodeCut(node, parent) {
 	return node.parent.children.splice(node.parent.children.indexOf(node), 1).shift();
 }
 
-function nodeInsertBefore(node, sibling) {
+function nodeInsertBefore(node, sibling) {	
+	sibling.parent.children.splice(sibling.parent.children.indexOf(sibling), 0, node);
 	node.parent = sibling.parent;
-	node.parent.children.splice(node.parent.children.indexOf(sibling), 0, node);
 }
 
 function nodeInsertAfter(node, sibling) {

@@ -10,7 +10,6 @@ function formToSearchEngine() {
 		"description": form.description.value,
 		"icon_url":form.iconURL.value,
 		"title":form.shortname.value,
-		"order":userOptions.searchEngines.length, 
 		"icon_base64String": imageToBase64(form.icon, userOptions.cacheIconsMaxSize), 
 		"method": form._method.value, 
 		"params": paramStringToNameValueArray(form.post_params.value), 
@@ -23,7 +22,7 @@ function formToSearchEngine() {
 }
 
 function hasDuplicateName(name) {
-	return ( userOptions.searchEngines.find( se => se.title == name ) ) ? true : false;
+	return ( findNode( userOptions.nodeTree, n => n.title == name ) ) ? true : false;
 }
 
 function expandElement(el) {
@@ -245,7 +244,7 @@ function addSearchEnginePopup(data) {
 				simple_confirm.querySelector('[name="no"]').onclick = function() {
 					
 					// remove the new engine
-					browser.runtime.sendMessage({action: "removeContextSearchEngine", id: userOptions.searchEngines[userOptions.searchEngines.length - 1].id});
+//					browser.runtime.sendMessage({action: "removeContextSearchEngine", id: userOptions.searchEngines[userOptions.searchEngines.length - 1].id});
 					
 					showMenu('simple_remove');
 					setTimeout(() => showMenu('customForm'), 1000);
@@ -438,11 +437,9 @@ function addSearchEnginePopup(data) {
 			alert(i18n("NameInvalid"));
 			return;
 		}
-		for (let se of userOptions.searchEngines) {
-			if (se.title == form.shortname.value) {
-				alert(i18n("EngineExists").replace("%1",se.title) + " " + i18n("EnterUniqueName"));
-				return;
-			}
+		for (let se of findNodes(userOptions.nodeTree, n => n.title === form.shortname.value)) {
+			alert(i18n("EngineExists").replace("%1",se.title) + " " + i18n("EnterUniqueName"));
+			return;
 		}
 		if (form.description.value.trim() == "") {
 			console.log('no description ... using title');
@@ -656,17 +653,8 @@ browser.runtime.sendMessage({action: "getUserOptions"}).then( uo => {
 
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
-	if (message.userOptions !== undefined) {
-
-		document.dispatchEvent(new CustomEvent('getUserOptionsEvent', {
-				
-			// if search engines length has changed, true else false
-			detail: ( userOptions.searchEngines.length !== message.userOptions.searchEngines.length )
-		}));
-		
+	if (message.userOptions !== undefined) 	
 		userOptions = message.userOptions || {};
-	}
-
 });
 
 // listen for the custom engine to prompt to add

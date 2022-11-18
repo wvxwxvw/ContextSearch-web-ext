@@ -3,12 +3,12 @@ var currentContextMenuContexts = [];
 
 async function buildContextMenu(searchTerms) {
 
-	console.log("buildContextMenu");
+	debug("buildContextMenu");
 	
 	function onCreated() {
 
 		if (browser.runtime.lastError) {
-			if ( browser.runtime.lastError.message.indexOf("ID already exists") === -1 ) console.log(browser.runtime.lastError);
+			if ( browser.runtime.lastError.message.indexOf("ID already exists") === -1 ) debug(browser.runtime.lastError);
 		}
 	}
 	
@@ -23,7 +23,7 @@ async function buildContextMenu(searchTerms) {
 			try {
 				browser.contextMenus.create( createOptions, onCreated);
 			} catch( _error) {
-				console.log(_error);
+				debug(_error);
 			}
 		}
 	}
@@ -43,38 +43,31 @@ async function buildContextMenu(searchTerms) {
 
 		if ( node.type === 'searchEngine' || node.type === "siteSearchFolder" ) {
 
-			let se = userOptions.searchEngines.find(se => se.id === node.id);
-			
-			if (!se) {
-				console.log('no search engine found for ' + node.id);
-				return;
-			}
-			
-			let _id = se.id + '_' + count++;
+			let _id = node.id + '_' + count++;
 
 			addMenuItem({
 				parentId: parentId,
 				title: getTitleWithHotkey(node),
 				id: context_prefix + _id,	
 				icons: {
-					"16": se.icon_base64String || se.icon_url || "/icons/logo_notext.svg"
+					"16": node.icon_base64String || node.icon_url || "/icons/logo_notext.svg"
 				}
 			});
 
-			if ( /{selectdomain}/.test( se.template ) ) {
+			if ( /{selectdomain}/.test( node.template ) ) {
 				
 				let pathIds = [];
 				
 				domainPaths.forEach( path => {
 					
-					let pathId = '__selectDomain__' + se.id + '_' + count++ + "_" + btoa(path);
+					let pathId = '__selectDomain__' + node.id + '_' + count++ + "_" + btoa(path);
 					
 					addMenuItem({
 						parentId: context_prefix + _id,
 						title: path,
 						id: context_prefix + pathId,
 						icons: {
-							"16": tab.favIconUrl || se.icon_base64String || se.icon_url || "/icons/logo_notext.svg"
+							"16": tab.favIconUrl || node.icon_base64String || node.icon_url || "/icons/logo_notext.svg"
 						}
 					});
 					
@@ -213,14 +206,14 @@ async function buildContextMenu(searchTerms) {
 	try {
 		await browser.contextMenus.removeAll();
 	} catch (error) {
-		console.log(error);
+		debug(error);
 	}
 	
 	let tabs = await browser.tabs.query({currentWindow: true, active: true});
 	let tab = tabs[0];
 
 	if ( !tab.url ) {
-		console.log("Error reading active tab", tab);
+		debug("Error reading active tab", tab);
 	}
 
 	let domainPaths = getDomainPaths(tab.url);
@@ -263,7 +256,7 @@ async function buildContextMenu(searchTerms) {
 			ses.forEach(se => {
 				let node = findNode(userOptions.nodeTree, _node => _node.title === se.name && (_node.type === "oneClickSearchEngine" || _node.type === "searchEngine") );
 				
-				if ( !node ) console.log(se);
+				if ( !node ) debug(se);
 
 				addMenuItem({
 					title: se.name,
@@ -299,7 +292,7 @@ async function buildContextMenu(searchTerms) {
 					contexts: [context]
 				}, onCreated);
 			} catch (error) {
-				console.log(error);
+				debug(error);
 			}
 
 			// recently used engines
@@ -370,7 +363,7 @@ async function buildContextMenu(searchTerms) {
 				contexts: contexts
 			}, onCreated);
 		} catch (error) {
-			console.log(error);
+			debug(error);
 		}
 
 		if ( userOptions.syncWithFirefoxSearch ) {
@@ -379,7 +372,7 @@ async function buildContextMenu(searchTerms) {
 			ses.forEach(se => {
 				let node = findNode(userOptions.nodeTree, _node => _node.title === se.name && (_node.type === "oneClickSearchEngine" || _node.type === "searchEngine") );
 				
-				if ( !node ) console.log(se);
+				if ( !node ) debug(se);
 
 				addMenuItem({
 					parentId: ROOT_MENU,
@@ -437,13 +430,13 @@ function getMenuHotkey() {
 }
 
 function updateMatchRegexFolders(s) {
-	console.log('updateMatchRegexFolders');
+	debug('updateMatchRegexFolders');
 
 	window.contextMenuMatchRegexMenus.forEach( menu => {
 		try {
 			browser.contextMenus.remove( menu );
 		} catch (error) {
-			console.log(error);
+			debug(error);
 		}
 	});
 	window.contextMenuMatchRegexMenus = [];
@@ -454,7 +447,7 @@ function updateMatchRegexFolder(s, context) {
 
 	onCreated = () => {
 		if (browser.runtime.lastError) {
-			if ( browser.runtime.lastError.message.indexOf("ID already exists") === -1 ) console.log(browser.runtime.lastError);
+			if ( browser.runtime.lastError.message.indexOf("ID already exists") === -1 ) debug(browser.runtime.lastError);
 		}
 	}
 
@@ -467,7 +460,7 @@ function updateMatchRegexFolder(s, context) {
 		window.contextMenuMatchRegexMenus.forEach( menu => {
 			try {
 				browser.contextMenus.remove( menu, onCreated );
-			} catch(err) {console.log(err)}
+			} catch(err) {debug(err)}
 		});
 		window.contextMenuMatchRegexMenus = [];
 	}
@@ -494,7 +487,7 @@ function updateMatchRegexFolder(s, context) {
 			delete createOptions.icons;
 			try {
 				browser.contextMenus.create(createOptions, onCreated);
-			} catch ( error ) { console.log(error)}
+			} catch ( error ) { debug(error)}
 		}
 
 		window.contextMenuMatchRegexMenus.push(id);
@@ -534,7 +527,7 @@ function contextMenuSearch(info, tab) {
 	}
 	
 	// if searchEngines is empty, open Options
-	if (userOptions.searchEngines.length === 0 && userOptions.nodeTree.children.length === 0 ) {	
+	if ( userOptions.nodeTree.children.length === 0 ) {	
 		return browser.runtime.openOptionsPage();	
 	}
 	

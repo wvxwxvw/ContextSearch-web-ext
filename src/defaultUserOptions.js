@@ -1,7 +1,8 @@
 const defaultUserOptions = {
-	searchEngines: defaultEngines || [],
+	searchEngines: [],
 	nodeTree: {},
 	lastUsedId: "",
+	lastUsedMethod: "",
 	hiddenEngines: "",
 	defaultGroupColor: "#CED7FF",
 	defaultGroupColorText: "#444444",

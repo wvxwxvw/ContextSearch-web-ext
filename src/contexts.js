@@ -1,8 +1,17 @@
-const contexts = ["audio", "frame", "image", "link", "page", "selection", "video"];
-const contextCodes = [1,2,4,8,16,32,64];
+const contexts = ["audio", "frame", "image", "link", "page", "selection", "video"]; // [1,2,4,8,16,32,64];
 
 function getContextCode(t) {
-	return contextCodes[contexts.indexOf(t)]
+	let i = contexts.indexOf(t);
+
+	if ( i == -1 ) {
+		console.warn("not a context", t);
+		return 0;
+	}
+	return Math.pow(2,i);
+}
+
+function contextsArrayToCode(arr) {
+	return arr.map(c => getContextCode(c)).reduce( (a,b) => a + b);
 }
 
 function hasContext(contextText, contextCode) {
@@ -21,9 +30,7 @@ function filterContexts(root, context) {
 	traverseNodesDeep(filteredNodeTree, ( node, parent ) => {
 
 		if ( node.type === 'searchEngine' ) {
-			let se = userOptions.searchEngines.find( _se => _se.id === node.id );
-			let _contexts = node.contexts || se.contexts;
-			if ( se && (!_contexts || !hasContext(context, _contexts)) )
+			if (!node.contexts || !hasContext(context, node.contexts) )
 				return removeNode( node, parent );
 		}
 

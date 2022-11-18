@@ -70,7 +70,7 @@ function matchingEnginesToFolder(s) {
 		groupColor: '#88bbdd'
 	}
 
-	let matchingEngines = userOptions.searchEngines.filter( se => {
+	let matchingEngines = findNodes(userOptions.nodeTree, se => {
 
 		if ( !se.matchRegex ) return false;
 
@@ -78,9 +78,8 @@ function matchingEnginesToFolder(s) {
 
 	});
 
-	matchingEngines.forEach( se => {
-		let node = findNode(userOptions.nodeTree, n => n.id === se.id )
-		if ( node ) folder.children.push(Object.assign({}, node));
+	matchingEngines.forEach( node => {
+		folder.children.push(Object.assign({}, node));
 	});
 
 	return folder;

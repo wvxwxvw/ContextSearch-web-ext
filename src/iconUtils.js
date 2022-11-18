@@ -1,6 +1,6 @@
 function uncacheIcons() {
 
-	for ( let se of userOptions.searchEngines ) {
+	for ( let se of findNodes(userOptions.nodeTree, n => n.type === "searchEngine") ) {
 
 		let hasDataURI = se.icon_base64String.startsWith('data:');
 		let isDataURI = se.icon_url.startsWith("data:");
@@ -30,7 +30,7 @@ function cacheIcons() {
 		count:0,
 		last_message:"",
 		bad: [],
-		total: userOptions.searchEngines.length,
+		total: findNodes(userOptions.nodeTree, n => n.type === "searchEngine").length,
 		oncomplete: function() {},
 		cache: cache
 	};
@@ -42,7 +42,7 @@ function cacheIcons() {
 
 	function cache() {
 
-		for (let se of userOptions.searchEngines) {
+		for (let se of findNodes(userOptions.nodeTree, n => n.type === "searchEngine")) {
 			let hasDataURI = se.icon_base64String.startsWith('data:');
 			let isDataURI = se.icon_url.startsWith("data:");
 			let hasURL = se.icon_url.startsWith("http");

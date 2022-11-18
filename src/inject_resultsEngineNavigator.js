@@ -35,10 +35,6 @@ const previousResultsEngine = () => {
 	let folder = findNode(userOptions.nodeTree, n => n.id === tt.folderId);
 	let node = findNode(folder, n => n.id === tt.id);
 
-	if ( node.type === 'searchEngine') {
-		node.matchRegex = userOptions.searchEngines.find(se => se.id === node.id).matchRegex;
-	}
-
 	// if regex match
 	if ( node.matchRegex ) {
 		folder = matchingEnginesToFolder(tt.searchTerms);
@@ -51,8 +47,7 @@ const previousResultsEngine = () => {
 		
 		// filter multisearch
 		try {
-			se = userOptions.searchEngines.find(_se => _se.id === c.id);
-			JSON.parse(se.template);
+			JSON.parse(c.template);
 			return false;
 		} catch (err) {}
 
@@ -68,4 +63,3 @@ const previousResultsEngine = () => {
 
 	terms = tt.searchTerms;
 })();
-
