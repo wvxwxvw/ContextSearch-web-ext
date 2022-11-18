@@ -864,7 +864,7 @@ function buildQuickMenuElement(options) {
 	}
 
 	// check if any search engines exist and link to Options if none
-	if (userOptions.nodeTree.children.length === 0 && userOptions.searchEngines.length === 0 ) {
+	if (userOptions.nodeTree.children.length === 0 ) {
 		var div = document.createElement('div');
 		div.style='width:auto;font-size:8pt;text-align:center;line-height:1;padding:10px;height:auto';
 		div.innerText = i18n("WhereAreMyEngines");
@@ -1634,7 +1634,7 @@ document.addEventListener('mouseup', e => {
 
 	if ( !tile || !tile.node ) return;
 
-	if (tile.node && tile.node.type && !['searchEngine', 'bookmarklet', 'oneClickSearchEngine', 'siteSearch', 'siteSearchFolder', 'externalProgram'].includes(tile.node.type)) return;
+	if (tile.node && tile.node.type && !['searchEngine', 'bookmarklet', 'oneClickSearchEngine', 'siteSearch', 'siteSearchFolder', 'externalProgram', 'shortcut'].includes(tile.node.type)) return;
 
 	if ( tile.disabled ) return;
 
@@ -1724,33 +1724,37 @@ async function mouseupHandler(e) {
 	let node = tile.node;
 	let qmo = quickMenuObject;
 
-	let searchPromise = (async () => {
+	getSearchPromise = async ( n ) => {
 
-		switch ( node.type ) {
+		switch ( n.type ) {
 			case 'searchEngine':
 			case 'bookmarklet':
 			case 'oneClickSearchEngine':
 			case 'bookmark':
-				return search({node:node, openMethod: getOpenMethod(e)});
+				return search({node:n, openMethod: getOpenMethod(e)});
 
 			case 'siteSearch':
-				return search({node:node, openMethod: getOpenMethod(e), domain: node.title});
+				return search({node:n, openMethod: getOpenMethod(e), domain: n.title});
 
 			case "siteSearchFolder":
 				return;
 
 			case 'externalProgram':
-				search({node:node, openMethod: getOpenMethod(e)});
+				search({node:n, openMethod: getOpenMethod(e)});
 				return Promise.resolve(true); // app launcher can resolve immediately
 
+			case 'shortcut':
+				let referenceNode = findNode(userOptions.nodeTree, _n => _n.id === n.referenceId );
+				return getSearchPromise(referenceNode);
+
 			default:
-				return Promise.reject('unknown node type', node.type);
+				return Promise.reject('unknown node type', n.type);
 
 		}
 
-	})();
+	}
 
-	searchPromise.then(() => {
+	getSearchPromise(node).then(() => {
 
 		// check for locked / Keep Menu Open 
 		let keepOpen = tile.keepOpen ? tile.keepOpen : false;
@@ -2156,23 +2160,12 @@ function nodeToTile( node ) {
 
 		case "searchEngine": {
 
-			let se = userOptions.searchEngines.find(se => se.id === node.id);
-
-			if ( se.description && !node.description ) node.description = se.description;
-			
-			if (!se) {
-				console.log('no search engine found for ' + node.id);
-				return;
-			}
-
 			// site search picker
-			if ( se.template.includes('{selectdomain}') )
+			if ( node.template.includes('{selectdomain}') )
 				return nodeToTile(Object.assign(node, {type: "siteSearchFolder"}));
 
 			tile = buildSearchIcon(getIconFromNode(node), getTitleWithHotkey(node));
-			tile.dataset.title = getTitleWithHotkey(node);
-		//	tile.dataset.description = se.description || node.description || "";
-				
+			tile.dataset.title = getTitleWithHotkey(node);				
 			tile.dataset.id = node.id;
 			tile.dataset.type = 'searchEngine';
 
@@ -2359,6 +2352,17 @@ function nodeToTile( node ) {
 			tile = buildSearchIcon(getIconFromNode(node), node.title);
 			tile.dataset.type = 'externalProgram';	
 			tile.dataset.title = node.title;
+			tile.dataset.id = node.id;
+			break;
+
+		case "shortcut":
+			let referenceNode = findNode(userOptions.nodeTree, n => n.id === node.referenceId );
+
+			if ( !referenceNode ) {
+				console.error("No reference node", node);
+				break;
+			}
+			tile = nodeToTile(referenceNode);
 			tile.dataset.id = node.id;
 			break;
 
@@ -2773,7 +2777,7 @@ function makeContextsBar() {
 
 	ctb.addEventListener('wheel', e => {
 		e.preventDefault();
-		ctb.scrollLeft += e.deltaY;
+		ctb.scrollLeft += (e.deltaY > 0 ) ? 16 : -16;
 	});
 
 //	makeContainerMore(ctb, 1, 1);
