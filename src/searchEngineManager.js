@@ -94,7 +94,10 @@ function buildSearchEngineContainer() {
 
 			let referenceNode = findNode(userOptions.nodeTree, n => n.id === node.referenceId );
 
-			if ( !referenceNode ) return;
+			if ( !referenceNode ) {
+				console.error("No reference node", node);
+				return;
+			}
 
 			let icon = document.createElement('img');
 			icon.src = getIconFromNode(referenceNode);
@@ -113,7 +116,10 @@ function buildSearchEngineContainer() {
 			tool.style.height = '1em';
 			tool.style.verticalAlign = 'middle';
 			tool.title = i18n("Shortcut");
+			tool.style.setProperty("--tools-color", "lightblue")
 			header.appendChild(tool);
+			header.style.fontStyle = 'italic';
+			header.style.color = 'lightblue';
 		}
 
 		if (node.type === 'searchEngine' || node.type === 'siteSearchFolder' ) {

@@ -827,6 +827,11 @@ function buildQuickMenuElement(options) {
 		
 	// make rows / columns
 	tileArray.forEach( tile => {
+
+		if ( !tile.classList ) {
+			console.log(tile);
+			return;
+		}
 		
 		tile.classList.add('tile');
 		
@@ -1213,7 +1218,7 @@ function makeSearchBar() {
 			let clipText = null;
 			try {
 				clipText = await navigator.clipboard.readText();
-			} catch ( error ) { console.error(error) }
+			} catch ( error ) { }
 
 			if ( clipText ) {
 
@@ -2360,6 +2365,7 @@ function nodeToTile( node ) {
 
 			if ( !referenceNode ) {
 				console.error("No reference node", node);
+				tile = buildSearchIcon("icons/link.svg", "broken");
 				break;
 			}
 			tile = nodeToTile(referenceNode);
