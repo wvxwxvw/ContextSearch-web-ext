@@ -24,14 +24,22 @@ function getSelectedText(el) {
 	return el.value.substring(el.selectionStart, el.selectionEnd);
 }
 
+function getUrlParam(p) {
+	var url = new URL(window.location.href);
+	return url.searchParams.get(p);
+}
+
 browser.runtime.sendMessage({action: "getUserOptions"}).then( async uo => {
 	userOptions = uo;
 	
 	let singleColumn = window == top ? userOptions.searchBarDefaultView === 'text' : userOptions.sideBar.singleColumn;
 
+	let folderId = getUrlParam("folderId");
+	let folder = folderId ? findNode(uo.nodeTree, n => n.id === folderId) : null;
+
 	await setTheme();
 	await setUserStyles();
-	await makeQuickMenu({type: window == top ? "searchbar" : "sidebar", singleColumn: singleColumn, contexts:[]})
+	await makeQuickMenu({type: window == top ? "searchbar" : "sidebar", singleColumn: singleColumn, contexts:[], node: folder})
 		.then( qme => {
 			document.body.appendChild(qme);
 			

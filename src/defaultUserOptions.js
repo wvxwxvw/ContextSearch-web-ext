@@ -145,6 +145,7 @@ const defaultUserOptions = {
 		rememberState: false,
 		openOnResults: false,
 		openOnResultsMinimized: false,
+		openOnResultsLastOpenedFolder: false,
 		scale:1.0,
 		domLayout:"",
 		setMinWidth:true

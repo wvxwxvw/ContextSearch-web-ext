@@ -240,8 +240,17 @@ function openSideBar(options) {
 		});
 	
 	}
-	
-	iframe.src = browser.runtime.getURL('/searchbar.html');
+
+	console.log(options);
+
+	if ( options.openOnResultsLastOpenedFolder && !userOptions.rememberLastOpenedFolder ) {
+		browser.runtime.sendMessage({action: "getLastOpenedFolder"}).then( id => {
+			iframe.src = browser.runtime.getURL('/searchbar.html?folderId=' + id);
+			console.log("getLastOpenedFolder", id);
+		});
+	} else {
+		iframe.src = browser.runtime.getURL('/searchbar.html');
+	}
 	
 	if ( !options.noSave ) saveState(true);
 

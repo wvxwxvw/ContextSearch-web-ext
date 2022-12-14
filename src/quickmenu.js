@@ -90,18 +90,22 @@ async function makeFolderContents(node) {
 
 	noMinimumWidth = true;
 
+	setParents(node);
+
+//	let nodeRef = findNode(root, n => n.id === node.id) || node;
+
 	let _singleColumn = node.displayType === "text" || userOptions.quickMenuDefaultView === "text";
 
-	await makeQuickMenu({type: "quickmenu", singleColumn: _singleColumn});
+	await makeQuickMenu({type: "quickmenu", singleColumn: _singleColumn, node:node});
 
 	// remove everything
 	document.querySelectorAll('BODY > DIV').forEach(el => el.parentNode.removeChild(el));
 
-	setParents(node);
+	// setParents(node);
 
-	let nodeRef = findNode(root, n => n.id === node.id) || node;
+	// let nodeRef = findNode(root, n => n.id === node.id) || node;
 	
-	qm = await quickMenuElementFromNodeTree(nodeRef, true);
+	// qm = await quickMenuElementFromNodeTree(nodeRef, true);
 
 	// fix layout
 	qm.removeBreaks();
