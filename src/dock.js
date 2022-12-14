@@ -208,7 +208,7 @@ function makeDockable(el, options) {
 	
 	function doOffset(notBody) {
 
-		return;
+		if ( !userOptions.dockingMoveFixedElements ) return;
 
 		runAtTransitionEnd(el, ["width","height","max-width","max-height"], () => {
 			
