@@ -273,8 +273,12 @@ async function restoreOptions(restoreUserOptions) {
 		document.dispatchEvent(new CustomEvent('userOptionsLoaded'));
 	}
   
-	function onError(error) {
+	async function onError(error) {
 		console.log(`Error: ${error}`);
+
+		if ( confirm(i18n("confirmRestoreOldConfig")) ) {
+
+		}
 	}
 
 	await browser.runtime.sendMessage({action: "checkForOneClickEngines"});
@@ -581,11 +585,8 @@ function addDOMListeners() {
 		}
 	})
 
-	$('syncToCloud').addEventListener('click', e => {
-		syncTest();
-	});
-
-
+	$('syncToCloud').addEventListener('click', syncTest);
+	$('restoreBackup').addEventListener('click', promptForRestoreBackup);
 }
 
 document.addEventListener('userOptionsLoaded', e => {
@@ -1002,11 +1003,12 @@ function buildImportExportButtons() {
 				let dupes = findNodesDeep(folder, n => findNode(uo.nodeTree, _n => _n.id === n.id));
 
 				for ( let dupe of dupes ) {
+					let modal = $('#importModalDuplicates');
 					let result = await new Promise( res => {
-						$('#importModalDuplicates').classList.remove('hide');
-						$('#importModalDuplicates [name="message"]').innerText = dupe.title || dupe.type;
+						modal.classList.remove('hide');
+						modal.querySelector('[name="message"]').innerText = dupe.title || dupe.type;
 
-						$('#importModalDuplicates').querySelectorAll('BUTTON[name]').forEach( el => {
+						modal.querySelectorAll('BUTTON[name]').forEach( el => {
 							el.addEventListener('click', e => res(el.name));
 						})
 					});
@@ -1015,7 +1017,7 @@ function buildImportExportButtons() {
 						removeNodesById(folder, dupe.id);
 
 					if ( result === "cancel" ) {
-						$('#importModalDuplicates').classList.add('hide');
+						modal.classList.add('hide');
 						return;
 					}
 
@@ -1031,7 +1033,7 @@ function buildImportExportButtons() {
 						dupe.id = gen();
 					}
 						
-					$('#importModalDuplicates').classList.add('hide');
+					modal.classList.add('hide');
 
 				}
 
@@ -2275,19 +2277,23 @@ function syncTest() {
 	findNodes(uo.nodeTree, n => n.type === 'searchEngine').forEach( n => n.icon_base64String = "");
 	uo.searchBarHistory = [];
 
-	console.log("options in bytes:", JSON.stringify(uo).length);
+	let totalSize = JSON.stringify(uo).length
+
+	console.log("options in bytes:", totalSize);
+
+	let largeKeys = [];
 
 	for ( key in uo ) {
-		console.log(key, JSON.stringify(uo[key]).length);
+		let len = JSON.stringify(uo[key]).length;
+		if ( len > 8192) largeKeys.push({key: key, length: len});
 	}
-
 
 	let nodes = findNodes(uo.nodeTree, n => n.type !== 'folder');
 	nodes.sort((a,b) => JSON.stringify(a).length > JSON.stringify(b).length );
 
-	nodes.forEach(n => console.log(n.title, JSON.stringify(n).length));
+//	nodes.forEach(n => console.log(n.title, JSON.stringify(n).length));
 
-	findNodes(uo.nodeTree, n => n.type === 'folder' && n.icon ).forEach( n => console.log(n.title, n.icon.length))
+//	findNodes(uo.nodeTree, n => n.type === 'folder' && n.icon ).forEach( n => console.log(n.title, n.icon.length))
 
 	let count = findNodes(uo.nodeTree, n => true).length;
 	let size = JSON.stringify(uo.nodeTree).length
@@ -2296,4 +2302,36 @@ function syncTest() {
 
 	console.log("options in bytes:", JSON.stringify(uo).length);
 
+	largeKeys.forEach( k => console.log(k.key, "exceeds maximum size", k.length));
+
 }
+
+async function promptForRestoreBackup() {
+		$('#main').classList.add('blur');
+		let modal = $('#modalRestoreBackup');
+
+		let result = await new Promise( res => {
+			modal.classList.remove('hide');
+
+			modal.querySelectorAll('BUTTON[name]').forEach( el => {
+				el.addEventListener('click', e => res(el.name));
+			});
+		});
+
+		if ( result === "sessionBackup" ) {
+
+		}
+
+		if ( result === "versionBackup" ) {
+
+		}
+			
+		modal.classList.add('hide');
+		$('#main').classList.remove('blur');
+
+
+			// browser.runtime.sendMessage({action: "restorePreviousVersion"}).then( result => {
+			// 	window.location.reload();
+			// });
+}
+

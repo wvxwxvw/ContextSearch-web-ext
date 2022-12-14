@@ -252,6 +252,7 @@ const defaultUserOptions = {
 	shakeSensitivity: 4,
 	blockList: ["moz-extension://*", "chrome://*"],
 	version: "1",
+	lastUpdated: 0,
 	quickMenuShowRecentlyUsed: false,
 	quickMenuShowHotkeysInTitle: false,
 	forceOpenResultsTabsAdjacent: false,

@@ -2546,6 +2546,27 @@
   },
   "New": {
     "message": "New"
+  },
+  "confirmRestoreOldConfig": {
+    "message": "There was a problem loading the current preferences. Try loading an earlier version?"
+  },
+  "SessionBackup": {
+    "message": "Previous Session"
+  },
+  "VersionBackup": {
+    "message": "Previous Version"
+  },
+  "RestoreBackup": {
+    "message": "Restore Backup"
+  },
+  "Backup": {
+    "message": "Backup"
+  },
+  "Restore": {
+    "message": "Restore"
+  },
+  "BackupAndRestore": {
+    "message": "Backup & Restore"
   }
 
 }

@@ -4,6 +4,7 @@ window.contextMenuSearchTerms = "";
 window.tabTerms = [];
 
 var userOptions = {};
+var userOptionsBackup = {};
 var highlightTabs = [];
 var isAndroid = false;
 
@@ -66,32 +67,26 @@ browser.tabs.onActivated.addListener(info => {
 browser.runtime.onMessage.addListener(notify);
 
 browser.runtime.onInstalled.addListener( details => {
-
-
- 
-	// details.reason = 'install';
-	// Show new features page
 	
-	document.addEventListener('loadUserOptions', () => {
+	document.addEventListener('loadUserOptions', async() => {
 
-	/*
-		if (
-			details.reason === 'update' 
-			&& details.previousVersion < "1.9.4"
-		) {
-			browser.tabs.create({
-				url: browser.runtime.getURL("/options.html#highLight"),
-				active: false
-				
-			}).then(_tab => {
-				browser.tabs.executeScript(_tab.id, {
-					file: browser.runtime.getURL("/update/update.js")
-				});
-			});
+		if ( details.temporary ) {}
+
+		if ( 
+			 details.reason === 'update'
+			 && userOptions.version != userOptionsBackup.version
+			// userOptions.version < 1.47 /*details.previousVersion < "1.47" */ 
+		)  {
+
+			debug("Backing up userOptions to userOptionsBackup");
+
+			// this is the untouched copy from the previous session
+			await browser.storage.local.set({"userOptionsBackup": userOptionsBackup});
+			return;
 		}
 		
 	//	Show install page
-*/	if ( details.reason === 'install' ) {
+		if ( details.reason === 'install' ) {
 			browser.tabs.create({
 				url: "/options.html#engines"
 			}).then(_tab => {
@@ -149,6 +144,7 @@ async function notify(message, sender, sendResponse) {
 
 		case "saveUserOptions":
 			userOptions = message.userOptions;
+			userOptions.lastUpdated = Date.now();
 
 			debug("saveUserOptions", message.source || "", sender.tab.url);
 
@@ -952,6 +948,9 @@ async function notify(message, sender, sendResponse) {
 
 		case "isSidebar":
 			return sender.hasOwnProperty("frameId");
+
+		case "restorePreviousVersion":
+			return restorePreviousVersion();
 	}
 }
 
@@ -1030,8 +1029,12 @@ function loadUserOptions() {
 		// no results found, use defaults
 		if ( !result.userOptions ) {
 			userOptions = Object.assign({}, defaultUserOptions);
+			userOptions.nodeTree.children = defaultEngines;
 			return false;
 		}
+
+		// store a session copy
+		userOptionsBackup = JSON.parse(JSON.stringify(result.userOptions));;
 
 		userOptions = updateUserOptionsObject( result.userOptions );
 
@@ -1750,7 +1753,7 @@ async function highlightSearchTermsInTab(tab, searchTerms) {
 
 	if ( userOptions.sideBar.openOnResults ) {
 		await browser.tabs.executeScript(tab.id, {
-			code: `openSideBar({noSave: true, minimized: ${userOptions.sideBar.openOnResultsMinimized}, openedOnSearchResults: true})`,
+			code: `openSideBar({noSave: true, minimized: ${userOptions.sideBar.openOnResultsMinimized}, openedOnSearchResults: true, openOnResultsLastOpenedFolder: true})`,
 			runAt: 'document_idle'
 		});
 	}
@@ -2245,6 +2248,11 @@ function updateUserOptionsVersion(uo) {
 		
 		return _uo;
 	}).then( _uo => {
+
+		// 1.47+
+		if ( Object.keys(uo.nodeTree).length === 0 )
+			uo.nodeTree.children = defaultEngines;
+
 		debug('Done ->', _uo.version, Date.now() - start);
 		return _uo;
 	});
@@ -2612,4 +2620,41 @@ async function scrapeBookmarkIcons() {
     //         debug('Not Found');
     //         break;
     // }
+}
+
+async function restorePreviousVersion() {
+	try {
+		let uob = await browser.storage.local.get("userOptionsBackup");
+		userOptions = updateUserOptionsVersion(uob);
+
+		notify({action: "saveUserOptions", userOptions:userOptions});
+
+		return userOptions;
+		
+	} catch (error ) {
+		console.error(error);
+		return null;
+	}
+}
+
+function exportJSONObject(o, filename) {
+
+	try {
+		let blob = new Blob([JSON.stringify(o)], {type: "application/json"}); 
+		let url  = URL.createObjectURL(blob);
+
+		return browser.downloads.download({
+			url: url,
+			filename: filename
+		});
+	} catch( error ) { console.error(error)}
+}
+
+function exportUserOptions(uo) {
+
+	uo = uo || userOptions;
+	let date = new Date().toISOString().replace(/:|\..*/g,"").replace("T", "_");
+	let filename = `ContextSearchOptions_${date}.json`;
+
+	return exportJSONObject(uo, filename);
 }

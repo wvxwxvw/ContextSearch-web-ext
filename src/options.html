@@ -52,6 +52,8 @@
 				padding:0;
 				margin:0;
 				transition: filter .1s;
+				width: 100%;
+				height: 100%;
 			}
 			#left_div {
 				width:250px;
@@ -1320,6 +1322,7 @@
 			.blur {
 				filter:blur(1px);
 				pointer-events: none;
+				position: absolute;
 			}
 
 			.changed {
@@ -1568,6 +1571,19 @@
 				display: inline-block;
 			}
 
+			.modal.iconButtons * {
+				vertical-align: middle;
+			}
+
+			.modal.iconButtons BUTTON {
+				 white-space: nowrap;
+				 width:100%;
+			}
+
+			.modal.iconButtons SPAN {
+				 margin-left: 8px;
+			}
+
 			FIREFOX-ICON {
 				/*content: "FF";*/
 				background-color:rgb(234, 172, 92);
@@ -1617,17 +1633,11 @@
 				<button class="tablinks" data-tabid="generalTab" data-i18n="General"><tool data-icon="settings.svg"></tool>$</button>
 				<button class="tablinks" data-tabid="advancedTab" data-i18n="Advanced"><tool data-icon="auto.svg"></tool>$</button>
 				<button class="tablinks" data-tabid="helpTab" data-i18n="Help"><tool data-icon="help.svg"></tool>$</button>
+				<button class="tablinks" data-tabid="backupTab" data-i18n="BackupAndRestore"><tool data-icon="upload.svg"></tool>$</button>
 
 				<button class="tablinks" style="display:none" data-tabid="requestPermissionsTab" data-i18n=""><tool data-icon="help.svg"></tool>$</button>
 			</div>
-			<div style="font-size:10pt;cursor:default">
-				<label for="importSettings">
-					<button id="b_importSettings" data-i18n="Import">$</button>
-					<input style="display:none" name="importSettings" id="importSettings" type="file" accept="*" class="nosave" />
-				</label>
-				<button id="b_exportSettings" data-i18n="Export">$</button>
-			</div>
-			</p>
+			
 			<div id="info" style="margin-top:20px">
 				<a href="https://github.com/ssborbis/ContextSearch-web-ext/issues" target="_blank" data-i18n="Support">$<tool data-icon="external_link.svg" style="margin-left:4px;height:.8em"></tool></a><br />
 				<a href="https://github.com/ssborbis/ContextSearch-web-ext" target="_blank" data-i18n="Source">$<tool data-icon="external_link.svg" style="margin-left:4px;height:.8em"></tool></a><br />
@@ -1635,6 +1645,25 @@
 			
 		</div>
 		<div id="right_div">
+			<div class="tabcontent" id="backupTab" >
+				<div class="blobContainerHeader" data-i18n="BackupAndRestore"><img src="icons/upload.svg" />$</div>
+				<section>
+					<p class="header1" data-i18n="Backup">$</p>
+					<button id="b_exportSettings">O</button> Export to JSON file
+				</section>
+				<section>
+					<p class="header1" data-i18n="Restore">$</p>
+
+						<label for="importSettings">
+							<button id="b_importSettings">O</button> Import from JSON file
+							<input style="display:none" name="importSettings" id="importSettings" type="file" accept="*" class="nosave" />
+						</label><br>
+
+						<button id="">O</button> Restore previous session<br>
+						<button id="">O</button> Restore previous version<br>
+
+				</section>
+			</div>
 			<div class="tabcontent" id="advancedTab" >
 				<div class="blobContainerHeader" data-i18n="Advanced"><img src="icons/auto.svg" />$</div>
 				<section>
@@ -1676,15 +1705,27 @@
 						</td>
 					</tr>
 					<tr>
-						<td >updateNativeApp</td>
+						<td data-i18n="exportPreviousVersion" title="$exportPreviousVersionTooltip">$</td>
+						<td>
+							<button class="exportPreviousVersion">⟳</button>
+						</td>
+					</tr>
+					<tr>
+						<td>updateNativeApp</td>
 						<td>
 							<button class="updateNativeApp">⟳</button>
 						</td>
 					</tr>
-					<tr>
-						<td >Sync</td>
+					<tr style="display:none">
+						<td >syncTest</td>
 						<td>
 							<button id="syncToCloud">⟳</button>
+						</td>
+					</tr>
+					<tr>
+						<td >restoreBackup</td>
+						<td>
+							<button id="restoreBackup">⟳</button>
 						</td>
 					</tr>
 					<tr class="moveToEnd">
@@ -3483,32 +3524,43 @@
 		</div>
 		</div>
 		<div id="importModal" class="modal hide">
-			<div style="font-size:14pt;margin-bottom:20px">Import</div>
-			<button class="replace">Restore</button><br>
-			<button class="merge">Merge</button><br>
-			<button class="cancel">Cancel</button><br>
+			<div data-i18n="Import" style="font-size:14pt;margin-bottom:20px">$</div>
+			<button data-i18n="Restore" class="replace">$</button><br>
+			<button data-i18n="Merge" class="merge">$</button><br>
+			<button data-i18n="Cancel" class="cancel">$</button><br>
 		</div>
 		<div id="importModalCustom" class="modal hide">
-			<div style="font-size:14pt">Import</div>
+			<div data-i18n="Import" style="font-size:14pt">$</div>
 			<div style="text-align: initial;">
-				<input type="checkbox" name="settings" class="nosave" checked /> Settings <br>
-				<input type="checkbox" name="history" class="nosave" checked /> History <br>
+				<input data-i18n="Settings" type="checkbox" name="settings" class="nosave" checked />$<br>
+				<input data-i18n="History" type="checkbox" name="history" class="nosave" checked />$<br>
 				<div name="nodes_left"></div>
 				<div style="display:inline-block"> &rarr; </div>
 				<div name="nodes_right"></div>
 			</div>
-			<button class="ok">OK</button>
-			<button class="cancel">Cancel</button>
+			<button data-i18n="OK" class="ok">$</button>
+			<button data-i18n="Cancel" class="cancel">$</button>
 		</div>
 
 		<div id="importModalDuplicates" class="modal hide">
-			<div style="font-size:14pt;margin-bottom:20px">Duplicate Found</div>
+			<div data-i18n="DupicateFound" style="font-size:14pt;margin-bottom:20px">$</div>
 			<div name="message"></div><br>
-			<button name="replace">Replace</button>
-			<button name="merge">Keep Both</button>
-			<button name="skip">Skip</button>
-			<button name="cancel">Cancel</button>
+			<button data-i18n="Replace" name="replace">$</button>
+			<button data-i18n="KeepBoth" name="merge">$</button>
+			<button data-i18n="Skip" name="skip">$</button>
+			<button data-i18n="Cancel" name="cancel">$</button>
 			<!-- <input type="checkbox" name="doall" class="nosave" />Do For All <br> -->
+		</div>
+
+		<div id="modalRestoreBackup" class="modal hide iconButtons" style="width:auto;">
+			<div data-i18n="Restore" style="font-size:14pt;margin-bottom:20px">$</div>
+			<label for="importSettings">
+				<button id="b_importSettings"><tool data-icon="folder.svg"></tool><span>File</span></button>
+				<input style="display:none" name="importSettings" id="importSettings" type="file" accept="*" class="nosave" />
+			</label><br>
+			<button name="sessionBackup"><tool data-icon="history_one.svg"></tool><span data-i18n="sessionBackup">$</span></button><br>
+			<button name="versionBackup"><tool data-icon="history.svg"></tool><span data-i18n="versionBackup">$</span></button><br>
+			<button data-i18n="Cancel" name="cancel">$</button><br>
 		</div>
 
 		<img id="nightmode" src="icons/brightness.svg" style="position:fixed;top:4px;right:4px;height:24px;z-index:10000;" title="$toggletheme">
