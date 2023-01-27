@@ -361,6 +361,7 @@ document.addEventListener("fullscreenchange", e => {
 
 document.addEventListener('click', e => {
 	if (e.target.closest("contextsearch-widgets")) return;
+	if ( !getIframe() ) return;
 	getIframe().contentWindow.postMessage({action: "editEnd"}, browser.runtime.getURL('/searchbar.html'));
 })
 
