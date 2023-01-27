@@ -7,6 +7,7 @@ var userOptions = {};
 var userOptionsBackup = {};
 var highlightTabs = [];
 var isAndroid = false;
+var firefoxSearchEngines = [];
 
 (async() => {
 	let info = await browser.runtime.getPlatformInfo();
@@ -432,9 +433,7 @@ async function notify(message, sender, sendResponse) {
 			break;
 			
 		case "getFirefoxSearchEngineByName": {
-			if ( !browser.search || !browser.search.get ) return [];
-			let engines = await browser.search.get();
-			return engines.find(e => e.name === message.name);
+			return firefoxSearchEngines.find(ocse => ocse.name === message.name);
 		}
 			
 		case "addSearchEngine": {
@@ -452,9 +451,7 @@ async function notify(message, sender, sendResponse) {
 
 				let title = decodeURIComponent(match[1]);
 				
-				let engines = await browser.search.get();
-				
-				if ( engines.find(e => e.name === title) ) {
+				if ( firefoxSearchEngines.find(e => e.name === title) ) {
 					await browser.tabs.executeScript(sender.tab.id, {
 						code: `alert("${i18n("FFEngineExists", title)}");`
 					});
@@ -806,8 +803,7 @@ async function notify(message, sender, sendResponse) {
 			break;
 			
 		case "getFirefoxSearchEngines":
-			if ( browser.search && browser.search.get ) return browser.search.get();
-			break;
+			return firefoxSearchEngines;
 			
 		case "setLastUsed":
 			lastSearchHandler(message.id, message.method || null);
@@ -2272,19 +2268,25 @@ function setIcon() {
 
 async function checkForOneClickEngines() {
 
-	// not FF 63+
-	if ( !browser.search || !browser.search.get ) return -1;
-	
-	// don't add before nodeTree is populated
-	if ( !Object.keys(userOptions.nodeTree).length ) {
-		debug('empty nodeTree - aborting one-click check');
-		return -1;
-	}
-
-	let engines = await browser.search.get();
+	await updateBrowserEngines();
 
 	let newEngineCount = 0;
-	engines.forEach( engine => {
+	let folder = findNode(userOptions.nodeTree, n => n.id === "___browser_engines___");
+	let hasFolder = true;
+
+	if ( !folder ) {
+		folder = {
+			type:"folder",
+			title: i18n("SearchBarEngines"),
+			icon: "https://design.firefox.com/product-identity/firefox/firefox/firefox-logo.png",
+			id: "___browser_engines___",
+			children:[]
+		}
+
+		hasFolder = false;
+	}
+
+	firefoxSearchEngines.forEach( engine => {
 		let found = findNode(userOptions.nodeTree, node => node.title === engine.name && ( node.type === "searchEngine" || node.type === "oneClickSearchEngine") );
 		
 		if ( found ) return;
@@ -2292,18 +2294,20 @@ async function checkForOneClickEngines() {
 		let node = {
 			type: "oneClickSearchEngine",
 			title: engine.name,
-			icon: engine.favIconUrl || browser.runtime.getURL('icons/search.svg'),
 			hidden: false,
 			id: gen()
 		}
 
 		debug('adding One-Click engine ' + engine.name);
-		userOptions.nodeTree.children.push(node);
+		folder.children.push(node);
 		
 		newEngineCount++;
 		
 	});
-	
+
+	if ( newEngineCount && !hasFolder )
+		userOptions.nodeTree.children.push(folder);
+
 	return newEngineCount;
 }
 
@@ -2620,6 +2624,12 @@ async function scrapeBookmarkIcons() {
     //         debug('Not Found');
     //         break;
     // }
+}
+
+async function updateBrowserEngines() {
+	if ( !browser.search || !browser.search.get ) return;
+
+	firefoxSearchEngines = await browser.search.get();
 }
 
 async function restorePreviousVersion() {
