@@ -9,7 +9,7 @@ function makePageTilesPalette() {
 		s.appendChild(o);
 	});
 
-	s.value = userOptions.pageTiles.paletteString;
+	s.value = userOptions.pageTiles.paletteString || s.options[0].value;
 }
 
 function makePageTilesPaletteSample() {
