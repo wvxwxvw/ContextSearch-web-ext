@@ -605,7 +605,6 @@ function addDOMListeners() {
 	})
 
 	//$('syncToCloud').addEventListener('click', syncTest);
-	$('restoreBackup').addEventListener('click', promptForRestoreBackup);
 }
 
 document.addEventListener('userOptionsLoaded', e => {
@@ -2370,33 +2369,10 @@ function syncTest() {
 
 }
 
-async function promptForRestoreBackup() {
-		let modal = $('#modalRestoreBackup');
-		openModal(modal);
-
-		let result = await new Promise( res => {
-
-			modal.querySelectorAll('BUTTON[name]').forEach( el => {
-				el.addEventListener('click', e => res(el.name));
-			});
-		});
-
-		if ( result === "sessionBackup" ) {
-
-		}
-
-		if ( result === "versionBackup" ) {
-
-		}
-			
-		closeModal(modal);
-
-		// browser.runtime.sendMessage({action: "restorePreviousVersion"}).then( result => {
-		// 	window.location.reload();
-		// });
-}
-
 function saveAndReload(o) {
+
+	if ( !o ) return;
+
 	browser.runtime.sendMessage({action: "saveUserOptions", userOptions: o})
 		.then(() => location.reload());
 }
