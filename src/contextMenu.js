@@ -1,5 +1,4 @@
 const ROOT_MENU = "root_menu";
-var currentContextMenuContexts = [];
 
 async function buildContextMenu(searchTerms) {
 
@@ -50,7 +49,7 @@ async function buildContextMenu(searchTerms) {
 				title: getTitleWithHotkey(node),
 				id: context_prefix + _id,	
 				icons: {
-					"16": node.icon_base64String || node.icon_url || "/icons/logo_notext.svg"
+					"16": getIconFromNode(node)
 				}
 			});
 
@@ -67,7 +66,7 @@ async function buildContextMenu(searchTerms) {
 						title: path,
 						id: context_prefix + pathId,
 						icons: {
-							"16": tab.favIconUrl || node.icon_base64String || node.icon_url || "/icons/logo_notext.svg"
+							"16": tab.favIconUrl || getIconFromNode(node)
 						}
 					});
 					
@@ -84,7 +83,7 @@ async function buildContextMenu(searchTerms) {
 				title: getTitleWithHotkey(node),
 				id: node.id + '_' + count++,	
 				icons: {
-					"16": node.icon || browser.runtime.getURL("/icons/code.svg")
+					"16": getIconFromNode(node)
 				}
 			});
 		}
@@ -95,7 +94,7 @@ async function buildContextMenu(searchTerms) {
 				title: getTitleWithHotkey(node),
 				id: context_prefix + node.id + '_' + count++,
 				icons: {
-					"16": node.icon
+					"16": getIconFromNode(node)
 				}
 			});
 		}
@@ -127,7 +126,7 @@ async function buildContextMenu(searchTerms) {
 				id: _id,
 				title: getTitleWithHotkey(node),
 				icons: {
-					"16": node.icon || "/icons/folder-icon.svg"
+					"16": getIconFromNode(node)
 				}
 			});
 			
@@ -251,7 +250,7 @@ async function buildContextMenu(searchTerms) {
 	let buildContextually = async () => {
 			
 		if ( userOptions.syncWithFirefoxSearch ) {
-			let ses = await browser.search.get();
+			let ses = firefoxSearchEngines;
 			
 			ses.forEach(se => {
 				let node = findNode(userOptions.nodeTree, _node => _node.title === se.name && (_node.type === "oneClickSearchEngine" || _node.type === "searchEngine") );
@@ -367,7 +366,7 @@ async function buildContextMenu(searchTerms) {
 		}
 
 		if ( userOptions.syncWithFirefoxSearch ) {
-			let ses = await browser.search.get();
+			let ses = firefoxSearchEngines;
 			
 			ses.forEach(se => {
 				let node = findNode(userOptions.nodeTree, _node => _node.title === se.name && (_node.type === "oneClickSearchEngine" || _node.type === "searchEngine") );

@@ -20,7 +20,6 @@
 			"searchActions.js",
 			"nodes.js",
 			"omnibox.js",
-			"searchEngineUtils.js",
 			"mozlz4.js",
 			"keyTable.js",
 			"background.js"

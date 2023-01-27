@@ -947,6 +947,9 @@ async function notify(message, sender, sendResponse) {
 
 		case "restorePreviousVersion":
 			return restorePreviousVersion();
+
+		case "getSessionBackup":
+			return userOptionsBackup;
 	}
 }
 
@@ -2238,16 +2241,75 @@ function updateUserOptionsVersion(uo) {
 			}
 
 			_uo.searchEngines = [];
-
-			debug("-> 1.47");
 		}
-		
+
+		findNodes(_uo.nodeTree, n => {
+			if ( n.type === "searchEngine" ) {
+				if ( n.hasOwnProperty("icon_base64String") ) {
+					n.iconCache = n.icon_base64String;
+					delete n.icon_base64String;
+				}
+
+				if ( n.hasOwnProperty("icon_url") ) {
+					n.icon = n.icon_url;
+					delete n.icon_url;
+				}
+			}
+
+			// favicons are handled through search.get()
+			if ( n.type === "oneClickSearchEngine" ) {
+				delete n.icon;
+			}
+
+			if ( n.hasOwnProperty("icon") && !n.hasOwnProperty("iconCache") ) {
+				n.iconCache = "";
+			}
+		});
+
+		(() => {
+
+			let id = "___tools___"
+
+			if ( findNode(userOptions.nodeTree, n => n.id === id)) return;
+
+			let ts = userOptions.quickMenuTools;
+
+			let folder = {
+				type:"folder",
+				title:"Tools Menu",
+				children:[],
+				hidden:false,
+				id:id
+			}
+
+			ts.forEach(t => {
+
+				let tool = QMtools.find( _t => _t.name === t.name);
+
+				folder.children.push({
+					type: "tool",
+					hidden: t.disabled,
+					title: tool.title,
+					icon: tool.icon,
+					tool: tool.name
+				})
+			})
+
+			userOptions.nodeTree.children.unshift(folder);
+		});
+
+		debug("-> 1.47");
+
+		return _uo;
+	}).then( _uo => {
+	
 		return _uo;
 	}).then( _uo => {
 
 		// 1.47+
-		if ( Object.keys(uo.nodeTree).length === 0 )
+		if ( Object.keys(uo.nodeTree).length === 0 ) {
 			uo.nodeTree.children = defaultEngines;
+		}
 
 		debug('Done ->', _uo.version, Date.now() - start);
 		return _uo;
@@ -2348,9 +2410,9 @@ function dataToSearchEngine(data) {
 	// build search engine from form data
 	let se = {
 		"searchForm": data.origin, 
-		"icon_url": data.favicon_href || data.origin + "/favicon.ico",
+		"icon": data.favicon_href || data.origin + "/favicon.ico",
 		"title": data.name || data.title,
-		"icon_base64String": "", 
+		"iconCache": "", 
 		"method": data.method, 
 		"params": params, 
 		"template": template, 
@@ -2417,8 +2479,8 @@ function openSearchXMLToSearchEngine(xml) {
 	else if (template) se.searchForm = new URL(template).origin;
 	
 	let image = xml.documentElement.querySelector("Image");
-	if (image) se.icon_url = image.textContent;
-	else se.icon_url = new URL(template).origin + '/favicon.ico';
+	if (image) se.icon = image.textContent;
+	else se.icon = new URL(template).origin + '/favicon.ico';
 	
 	let method = url.getAttribute('method');
 	if (method) se.method = method.toUpperCase() || "GET";
@@ -2519,7 +2581,6 @@ async function injectContentScripts(tab, frameId) {
 		[
 			"/nodes.js",
 			"/opensearch.js",
-			"/searchEngineUtils.js",
 			"/dock.js",
 			"/inject_sidebar.js",
 			"/inject_customSearch.js",
