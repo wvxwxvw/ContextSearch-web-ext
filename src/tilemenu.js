@@ -83,10 +83,10 @@ function getFullElementSize(el) {
 }
 
 // generic search engine tile
-function buildSearchIcon(icon_url, title) {
+function buildSearchIcon(icon, title) {
 	var div = document.createElement('DIV');
 
-	if ( icon_url )	div.style.backgroundImage = 'url("' + ( icon_url || browser.runtime.getURL("/icons/logo_notext.svg") ) + '")';
+	if ( icon )	div.style.backgroundImage = 'url("' + ( icon || browser.runtime.getURL("/icons/logo_notext.svg") ) + '")';
 	div.style.setProperty('--tile-background-size', 16 * userOptions.quickMenuIconScale + "px");
 	div.title = title;
 	return div;
@@ -242,21 +242,43 @@ function createToolsArray() {
 	let toolsArray = [];
 
 	// iterate over tools
-	userOptions.quickMenuTools.forEach( tool => {
+	let toolsFolder = findNode(userOptions.nodeTree, n => n.id === "___tools___");
+	if ( false && toolsFolder ) {
+		console.log("using tools Folder");
+		toolsFolder.children.forEach( tool => {
 
-		// skip disabled tools
-		if (tool.disabled) return;
-		
-		let _tool = QMtools.find( t => t.name === tool.name );
-		if ( _tool ) {
+			if (tool.disabled) return;
 			
-			toolsArray.push(_tool.init());
-		
-			toolsArray[toolsArray.length - 1].context = _tool.context;
-			toolsArray[toolsArray.length - 1].tool = _tool;
-		}
+			let _tool = QMtools.find( t => t.name === tool.tool );
+			if ( _tool ) {
+				
+				toolsArray.push(_tool.init());
+			
+				toolsArray[toolsArray.length - 1].context = _tool.context;
+				toolsArray[toolsArray.length - 1].tool = _tool;
+			}
 
-	});
+		});
+	} else {
+
+		console.log("using quickMenuTools");
+	
+		userOptions.quickMenuTools.forEach( tool => {
+
+			// skip disabled tools
+			if (tool.disabled) return;
+			
+			let _tool = QMtools.find( t => t.name === tool.name );
+			if ( _tool ) {
+				
+				toolsArray.push(_tool.init());
+			
+				toolsArray[toolsArray.length - 1].context = _tool.context;
+				toolsArray[toolsArray.length - 1].tool = _tool;
+			}
+
+		});
+	}
 
 	toolsArray.forEach( tool => {
 		tool.dataset.type = 'tool';
@@ -2007,7 +2029,7 @@ document.addEventListener('drop', async e => {
 	if ( side === 'middle' && targetNode.type === "folder" )
 		nodeAppendChild(slicedNode, targetNode);
 	
-	debug('moving', slicedNode.title, 'to', slicedNode.parent.title);
+	console.log('moving', slicedNode.title, 'to', slicedNode.parent.title);
 
 	await dragSave();
 
@@ -2438,17 +2460,8 @@ function makeMoreLessFromTiles( _tiles, limit, noFolder, parentNode, node ) {
 
 			// ignore divs not associated with this more tile
 			if ( _div.moreTile !== moreTile ) return;
-			
-			_div.style.transition = 'none';
-			_div.style.opacity = 0;
 
-			_div.dataset.hidden = "false";
-			_div.style.display = null;
-
-			_div.style.transition = null;
-			_div.offsetWidth;
-			_div.style.opacity = null;
-
+			unhideTile(_div);
 		});
 		
 		moreTile.action = less;
@@ -2467,10 +2480,7 @@ function makeMoreLessFromTiles( _tiles, limit, noFolder, parentNode, node ) {
 			// ignore divs not associated with this more tile
 			if ( _div.moreTile !== moreTile ) return;
 			
-			_div.dataset.hidden = "true";
-			_div.style.display = "none";
-
-			//hideTile(_div);
+			hideTile(_div);
 		});
 		
 		moreTile.action = more;
@@ -2673,19 +2683,27 @@ function getElementCountBeforeOverflow(el, rows) {
 }
 
 function hideTile(el, moreTile) {
-	el.style.display = 'none';
 	el.dataset.hidden = 'true';
 
 	if ( moreTile) {
 		el.moreTile = moreTile;
 		el.dataset.morehidden = 'true';
 	}
+
+	el.style.opacity = 0;
 }
 
 function unhideTile(el) {
-	el.style.display = null;
-	delete el.dataset.hidden;
-	delete el.dataset.morehidden;
+	el.dataset.hidden = 'false';
+	el.dataset.morehidden = 'false';
+
+	// delay required with CSS [data-hidden]
+	setTimeout(() => {
+		el.style.opacity = 1;
+	}, 5);
+
+//	delete el.dataset.hidden;
+//	delete el.dataset.morehidden;
 }
 
 function initOptionsBar() {
