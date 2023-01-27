@@ -338,7 +338,7 @@ async function makeAddEngineBar() {
 				return div.parentNode.removeChild(div);
 			}
 
-			img.src = xml_se.icon_url || browser.runtime.getURL('icons/transparent.gif');
+			img.src = xml_se.icon || browser.runtime.getURL('icons/transparent.gif');
 
 			div.innerText = xml_se.title;
 
@@ -384,13 +384,15 @@ window.addEventListener('message', e => {
 		case "sideBarRebuild":
 			qm.columns = e.data.columns;
 
-			toolsHandler();
-			
+			qm.insertBreaks();
+
 			qm.style.height = null;
 			qm.style.width = null;
 
 			// reset the minWidth for the tilemenu
 			qm.setMinWidth();
+
+			toolsHandler();
 			
 			let rect = document.body.getBoundingClientRect();
 			let rect_qm = qm.getBoundingClientRect();
