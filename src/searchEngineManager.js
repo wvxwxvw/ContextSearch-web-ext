@@ -143,17 +143,18 @@ function buildSearchEngineContainer() {
 
 			li.addEventListener('dblclick', e => {
 
-				let edit_form = $('editFormTemplate').cloneNode(true);
+				let _form = $('editFormTemplate').cloneNode(true);
 
 				let contentForm = $('editSearchEngineForm').cloneNode(true);
 				contentForm.style.display = 'block';
-				edit_form.querySelector('content').appendChild(contentForm);
+				_form.querySelector('content').appendChild(contentForm);
 
-				edit_form.node = node;
+				_form.node = node;
+				_form.li = li;
 
 				e.stopPropagation();
 
-				addFormListeners(edit_form);
+				addFormListeners(_form);
 							
 				function clearError( element ) {
 					if ( 
@@ -195,67 +196,67 @@ function buildSearchEngineContainer() {
 				function checkFormValues() {
 	
 					// correct for case
-					// [edit_form.template, edit_form.post_params].forEach( el => {
+					// [_form.template, _form.post_params].forEach( el => {
 					// 	el.value = el.value.replace(/{searchterms}/i, "{searchTerms}");
 					// });
 					
 					return new Promise( (resolve, reject) => {
 					
-						if ( !edit_form.shortName.value.trim() ) {
-							showError(edit_form.shortName,i18n('NameInvalid'));
+						if ( !_form.shortName.value.trim() ) {
+							showError(_form.shortName,i18n('NameInvalid'));
 							resolve(false);
 						}
-						if (edit_form.shortName.value != li.node.title) {
+						if (_form.shortName.value != li.node.title) {
 							
-							if (findNode(userOptions.nodeTree, _se => _se.title == edit_form.shortName.value) ) {
-								showError(edit_form.shortName,i18n('NameExists'));
+							if (findNode(userOptions.nodeTree, _se => _se.title == _form.shortName.value) ) {
+								showError(_form.shortName,i18n('NameExists'));
 								resolve(false);
 							}
 						}
 						
 						// multi-URL to single URL
-						// if ( /[;|,|\s]\s*http/.test(edit_form.template.value) ) {
-							// edit_form.template.value = edit_form.template.value.replace(/[;|,|\s]\s*http/g, "+http");
+						// if ( /[;|,|\s]\s*http/.test(_form.template.value) ) {
+							// _form.template.value = _form.template.value.replace(/[;|,|\s]\s*http/g, "+http");
 							
-							// if ( !/^CS:\/\//.test(edit_form.template.value) )
-								// edit_form.template.value = edit_form.template.value.replace(/^/, "CS://");
+							// if ( !/^CS:\/\//.test(_form.template.value) )
+								// _form.template.value = _form.template.value.replace(/^/, "CS://");
 						// }
-						// if (edit_form.template.value.indexOf('{searchTerms}') === -1 && edit_form._method.value === 'GET' && edit_form.searchCode.value.trim() === "") {
-							// showError(edit_form.template,i18n("TemplateIncludeError"));
+						// if (_form.template.value.indexOf('{searchTerms}') === -1 && _form._method.value === 'GET' && _form.searchCode.value.trim() === "") {
+							// showError(_form.template,i18n("TemplateIncludeError"));
 						// }
 						try {
-							let _url = new URL(edit_form.template.value);
+							let _url = new URL(_form.template.value);
 						} catch (error) {
 							try {
-								JSON.parse(edit_form.template.value);
+								JSON.parse(_form.template.value);
 							} catch (error2) {
-								showError(edit_form.template,i18n("TemplateURLError"));
+								showError(_form.template,i18n("TemplateURLError"));
 							}
 						}
 						try {
-							let _url = new URL(edit_form.searchform.value);
+							let _url = new URL(_form.searchform.value);
 						} catch (error) {
 							try {
-								let _url = new URL(edit_form.template.value);
-								edit_form.searchform.value = _url.origin;
+								let _url = new URL(_form.template.value);
+								_form.searchform.value = _url.origin;
 							} catch (_error) {}
 						}
-							// showError(edit_form.template,i18n("TemplateURLError"));
+							// showError(_form.template,i18n("TemplateURLError"));
 						//	return;
 
-						// if (edit_form.post_params.value.indexOf('{searchTerms}') === -1 && edit_form._method.value === 'POST' ) {
-							// showError(edit_form.post_params, i18n("POSTIncludeError"));
+						// if (_form.post_params.value.indexOf('{searchTerms}') === -1 && _form._method.value === 'POST' ) {
+							// showError(_form.post_params, i18n("POSTIncludeError"));
 						// }
 
 						
-						[edit_form.searchRegex, edit_form.matchRegex].forEach( el => {
+						[_form.searchRegex, _form.matchRegex].forEach( el => {
 
 							if ( !validateRegex(el.value) )
 								showError(el, i18n("InvalidRegex") || "Invalid Regex");
 
 						});
 						
-						if ( edit_form.iconURL.value.startsWith("resource:") ) {
+						if ( _form.iconURL.value.startsWith("resource:") ) {
 							resolve(true);
 						}
 
@@ -266,83 +267,73 @@ function buildSearchEngineContainer() {
 				}
 				
 				// clear error formatting
-				for (let label of edit_form.getElementsByTagName('label')) {
+				for (let label of _form.getElementsByTagName('label')) {
 					if (label.dataset.i18n) label.innerText = i18n(label.dataset.i18n);
 					label.style.color = null;
 					clearError(label.nextSibling)
 				}
 
-				edit_form.shortName.value 	= node.title;
-				edit_form.description.value = node.description || "";
-				edit_form.template.value 	= node.template;
-				edit_form.iconURL.value 	= node.icon || node.iconCache;
-				edit_form._method.value 	= node.method || "GET";
-				edit_form.post_params.value = (node.method === 'GET') ? "" : nameValueArrayToParamString(node.params);
-				edit_form._encoding.value 	= node.queryCharset || "UTF-8";
-				edit_form.searchform.value 	= node.searchForm || function() {
+				_form.shortName.value 	= node.title;
+				_form.description.value = node.description || "";
+				_form.template.value 	= node.template;
+				_form.iconURL.value 	= node.icon || node.iconCache;
+				_form._method.value 	= node.method || "GET";
+				_form.post_params.value = (node.method === 'GET') ? "" : nameValueArrayToParamString(node.params);
+				_form._encoding.value 	= node.queryCharset || "UTF-8";
+				_form.searchform.value 	= node.searchForm || function() {
 					try {
 						return new URL(node.template).origin;
 					} catch (err) {
 						return "";
 					}
 				}();
-				edit_form.searchRegex.value = node.searchRegex || "";
-				edit_form.matchRegex.value 	= node.matchRegex || "";
-				edit_form.searchCode.value 	= node.searchCode || "";
+				_form.searchRegex.value = node.searchRegex || "";
+				_form.matchRegex.value 	= node.matchRegex || "";
+				_form.searchCode.value 	= node.searchCode || "";
 
-				setContexts(edit_form, node.contexts);
+				setContexts(_form, node.contexts);
 								
-				edit_form.close.onclick = edit_form.closeForm;
+				_form.close.onclick = _form.closeForm;
 
-				edit_form.test.onclick = function() {
+				_form.test.onclick = function() {
 					let searchTerms = window.prompt(i18n("EnterSearchTerms"),"ContextSearch web-ext");
 	
 					let tempSearchEngine = {
-						"searchForm": edit_form.searchform.value,
-						"method": edit_form._method.value, 
-						"params": paramStringToNameValueArray(edit_form.post_params.value), 
-						"template": edit_form.template.value, 
-						"queryCharset": edit_form._encoding.value,
-						"searchRegex": edit_form.searchRegex.value,
-						"matchRegex": edit_form.matchRegex.value,
-						"searchCode": edit_form.searchCode.value
+						"searchForm": _form.searchform.value,
+						"method": _form._method.value, 
+						"params": paramStringToNameValueArray(_form.post_params.value), 
+						"template": _form.template.value, 
+						"queryCharset": _form._encoding.value,
+						"searchRegex": _form.searchRegex.value,
+						"matchRegex": _form.matchRegex.value,
+						"searchCode": _form.searchCode.value
 					};
 
 					browser.runtime.sendMessage({action: "testSearchEngine", "tempSearchEngine": tempSearchEngine, "searchTerms": searchTerms});
 				}
-				
-				edit_form.copy.onclick = function() {
-					let newNode = addNewEngine(node, true);
-					let newLi = addNode(newNode, li);
-					updateNodeList(true);
-
-					edit_form.closeForm();
-
-					newLi.dispatchEvent(new MouseEvent('dblclick'));
-				}
-								
-				edit_form.addOpenSearchEngine.onclick = function() {
+												
+				_form.addOpenSearchEngine.onclick = function() {
 
 					let url = "https://opensearch-api.appspot.com" 
-						+ "?SHORTNAME=" + encodeURIComponent(edit_form.shortName.value)
-						+ "&DESCRIPTION=" + encodeURIComponent(edit_form.description.value) 
-						+ "&TEMPLATE=" + encodeURIComponent(encodeURI(edit_form.template.value))
-						+ "&POST_PARAMS=" + encodeURIComponent(edit_form.post_params.value) 
-						+ "&METHOD=" + encodeURIComponent(edit_form._method.value)
-						+ "&ENCODING=" + encodeURIComponent(edit_form._encoding.value)
-						+ "&ICON=" + encodeURIComponent(encodeURI(edit_form.iconURL.value))
+						+ "?SHORTNAME=" + encodeURIComponent(_form.shortName.value)
+						+ "&DESCRIPTION=" + encodeURIComponent(_form.description.value) 
+						+ "&TEMPLATE=" + encodeURIComponent(encodeURI(_form.template.value))
+						+ "&POST_PARAMS=" + encodeURIComponent(_form.post_params.value) 
+						+ "&METHOD=" + encodeURIComponent(_form._method.value)
+						+ "&ENCODING=" + encodeURIComponent(_form._encoding.value)
+						+ "&ICON=" + encodeURIComponent(encodeURI(_form.iconURL.value))
 						+ "&ICON_WIDTH=" + ( icon.naturalWidth || 16 )
 						+ "&ICON_HEIGHT=" + ( icon.naturalHeight || 16 )
-						+ "&SEARCHFORM=" + encodeURIComponent(encodeURI(edit_form.searchform.value))
+						+ "&SEARCHFORM=" + encodeURIComponent(encodeURI(_form.searchform.value))
 						+ "&VERSION=" + encodeURIComponent(browser.runtime.getManifest().version);
 					
 					browser.runtime.sendMessage({action: "addSearchEngine", url:url});	
 				}
 				
-				edit_form.save.onclick = function() {
+				_form.save.onclick = function() {
 					
 					// clear error formatting
-					for (let label of edit_form.getElementsByTagName('label')) {
+					for (let label of _form.getElementsByTagName('label')) {
 						if (label.dataset.i18n) label.innerText = i18n(label.dataset.i18n);
 						label.style.color = null;
 						clearError(label.nextSibling)
@@ -353,19 +344,19 @@ function buildSearchEngineContainer() {
 						// loading icon is last step. Set values after everything else
 							
 						// alert problems with changing name
-						if (node.title !== edit_form.shortName.value) {
+						if (node.title !== _form.shortName.value) {
 							
 							// if firefox, check for ocses and confirm if name exists
 							if ( browser.search && browser.search.get ) {
 								let ocses = await browser.search.get();
 							
-								let ocse = ocses.find( _ocse => _ocse.name == edit_form.shortName.value );
+								let ocse = ocses.find( _ocse => _ocse.name == _form.shortName.value );
 								
 								if ( ocse && !confirm(i18n('NameChangeWarning')))
 									return;
 							}
 
-							node.title = li.node.title = node.title = edit_form.shortName.value;
+							node.title = li.node.title = node.title = _form.shortName.value;
 							
 							// change name on all labels
 							table.querySelectorAll('li').forEach(_li => {
@@ -384,7 +375,7 @@ function buildSearchEngineContainer() {
 
 							setTimeout(() => resolve(""), 2500);
 
-							let src = getIconSourceFromURL(edit_form.iconURL.value);
+							let src = getIconSourceFromURL(_form.iconURL.value);
 
 							if ( src.startsWith('data:')) {
 								resolve(src);
@@ -397,52 +388,52 @@ function buildSearchEngineContainer() {
 						icon.src = iconBase64 || "icons/search.svg";
 
 						node.iconCache 		= iconBase64;  //icon.src;
-						node.description 	= edit_form.description.value;
-						node.template 		= edit_form.template.value;
-						node.searchForm 	= edit_form.searchform.value;
-						node.icon 			= edit_form.iconURL.value;
-						node.method 		= edit_form._method.value;
-						node.queryCharset 	= edit_form._encoding.value;
-						node.params 		= paramStringToNameValueArray(edit_form.post_params.value);
+						node.description 	= _form.description.value;
+						node.template 		= _form.template.value;
+						node.searchForm 	= _form.searchform.value;
+						node.icon 			= _form.iconURL.value;
+						node.method 		= _form._method.value;
+						node.queryCharset 	= _form._encoding.value;
+						node.params 		= paramStringToNameValueArray(_form.post_params.value);
 						node.id 			= node.id || gen();
-						node.searchRegex 	= edit_form.searchRegex.value;
-						node.matchRegex 	= edit_form.matchRegex.value;
-						node.searchCode 	= edit_form.searchCode.value;
+						node.searchRegex 	= _form.searchRegex.value;
+						node.matchRegex 	= _form.matchRegex.value;
+						node.searchCode 	= _form.searchCode.value;
 
-						node.contexts 	= getContexts(edit_form);
+						node.contexts 	= getContexts(_form);
 						setRowContexts(li);
 						
 						// force a save even if the nodeTree is unchanged
 						updateNodeList(true);
 						
-						if ( edit_form.querySelector('.error') )
-							showSaveMessage('saved with errors', 'red', edit_form.querySelector('.saveMessage'));
+						if ( _form.querySelector('.error') )
+							showSaveMessage('saved with errors', 'red', _form.querySelector('.saveMessage'));
 						else
-							showSaveMessage('saved', null, edit_form.querySelector('.saveMessage'));
+							showSaveMessage('saved', null, _form.querySelector('.saveMessage'));
 					}
 					
 					checkFormValues().then( result => {
 						if ( result ) saveForm();
-						else showSaveMessage("cannot save", "red", edit_form.querySelector('.saveMessage'));
+						else showSaveMessage("cannot save", "red", _form.querySelector('.saveMessage'));
 					});
 				}
 
-				edit_form.saveclose.onclick = function() {
-					edit_form.save.onclick();
-					setTimeout(() => edit_form.close.onclick(), 500);
+				_form.saveclose.onclick = function() {
+					_form.save.onclick();
+					setTimeout(() => _form.close.onclick(), 500);
 				}
 				
 				// clear error formatting on focus
-				for (let element of edit_form.getElementsByTagName('input')) {
+				for (let element of _form.getElementsByTagName('input')) {
 					element.addEventListener('focus', () => {
 						clearError( element );
 					});
 				}
 
-				createFormContainer(edit_form);
-				addIconPickerListener(edit_form.iconPicker, li);
-				//addFavIconFinderListener(edit_form.faviconFinder);
-				edit_form.addFaviconBox(getIconFromNode(node));
+				createFormContainer(_form);
+				addIconPickerListener(_form.iconPicker, li);
+				//addFavIconFinderListener(_form.faviconFinder);
+				_form.addFaviconBox(getIconFromNode(node));
 				checkFormValues();
 			});
 
@@ -466,11 +457,12 @@ function buildSearchEngineContainer() {
 				let _form = $('editFormTemplate').cloneNode(true);
 				_form.id = null;
 
-				removeFormNames(_form, [ "copy", "searchRegex"]);
+				removeFormNames(_form, [ "searchRegex"]);
 
 				addFormListeners(_form);
 				
 				_form.node = node;
+				_form.li = li;;
 								
 				_form.iconURL.value 	= node.icon || "";
 				_form.shortName.value 	= node.title;
@@ -606,6 +598,7 @@ function buildSearchEngineContainer() {
 				addFormListeners(_form);
 				
 				_form.node = node;
+				_form.li = li;;
 								
 				_form.iconURL.value = node.icon || "";
 			//	_form.shortName.value = node.title;
@@ -666,7 +659,7 @@ function buildSearchEngineContainer() {
 				let _form = $('editFormTemplate').cloneNode(true);
 				_form.id = null;
 
-				removeFormNames(_form, [ "copy", "searchCode"]);
+				removeFormNames(_form, [ "searchCode"]);
 
 				let contentForm = $('editExternalProgramForm').cloneNode(true);
 				contentForm.style.display = 'block';
@@ -676,6 +669,7 @@ function buildSearchEngineContainer() {
 				addFormListeners(_form);
 				
 				_form.node = node;
+				_form.li = li;;
 								
 				_form.iconURL.value 	= node.icon || "";
 				_form.shortName.value 	= node.title;
@@ -823,11 +817,12 @@ function buildSearchEngineContainer() {
 				let _form = $('editFormTemplate').cloneNode(true);
 				_form.id = null;
 
-				removeFormNames(_form, ["description","copy","test"]);
+				removeFormNames(_form, ["description","test"]);
 
 				addFormListeners(_form);
 				
 				_form.node = node;
+				_form.li = li;;
 								
 				_form.iconURL.value 	= node.icon || img.src || "";
 				_form.shortName.value 	= node.title;
@@ -928,6 +923,7 @@ function buildSearchEngineContainer() {
 				addFormListeners(_form);
 
 				_form.node = node;
+				_form.li = li;;
 
 				_form.closeForm = _form.closeForm;
 				
@@ -1113,7 +1109,7 @@ function buildSearchEngineContainer() {
 
 					// set hotkey for all copies
 					for (let _hk of rootElement.querySelectorAll('li')) {
-						if (_hk.node && _hk.node.id === node.id)
+						if (_hk.node && _hk.node.id && _hk.node.id === node.id)
 							_hk.querySelector('.hotkey').innerText = keyTable[evv.which];
 					}
 					
@@ -2209,20 +2205,6 @@ function buildSearchEngineContainer() {
 		table.querySelectorAll('.selected').forEach( row => row.classList.remove('selected') );
 		selectedRows = [];
 	}
-
-	function addNode(node, li) {
-		if ( !node || !li ) {
-			console.log("node or parent does not exist");
-			return false;
-		}
-
-		nodeInsertAfter(node, li.node);
-
-		let newLi = traverse(node, li.parentNode);
-		li.parentNode.insertBefore(newLi, li.nextSibling);
-
-		return newLi;
-	}
 	
 	function addNewEngine(node, copy) {
 		
@@ -2242,8 +2224,8 @@ function buildSearchEngineContainer() {
 
 			let sameName = findNode(userOptions.nodeTree, n => n.type === "searchEngine" && n.title === shortName);
 			if ( sameName ) {
-				console.log(engine.title + "\t" + shortName);
-				msg = i18n("EngineExists").replace("%1",engine.title) + " " + i18n("EnterUniqueName");
+				console.log(sameName.title + "\t" + shortName);
+				msg = i18n("EngineExists").replace("%1",sameName.title) + " " + i18n("EnterUniqueName");
 				found = true;
 			}
 			
@@ -2277,6 +2259,141 @@ function buildSearchEngineContainer() {
 		});
 
 		return se;
+	}
+
+	function addNode(node, li) {
+		if ( !node || !li ) {
+			console.log("node or parent does not exist");
+			return false;
+		}
+
+		nodeInsertAfter(node, li.node);
+
+		let newLi = traverse(node, li.parentNode);
+		li.parentNode.insertBefore(newLi, li.nextSibling);
+
+		return newLi;
+	}
+
+	function addFormListeners(form) {
+
+		form.addEventListener('input', e => {
+			form.save.classList.add('changed');
+			form.saveclose.classList.add('changed');
+		});
+
+		form.closeForm = () => {
+			
+			let formContainer = $('#floatingEditFormContainer');
+
+			if ( !formContainer ) return;
+			
+			formContainer.parentNode.style.opacity = 0;
+			$('#main').classList.remove('blur');
+			runAtTransitionEnd(formContainer, "opacity", () => {
+			//	form.style.display = null;
+			//	document.body.appendChild(form);
+				document.body.removeChild(formContainer.parentNode);
+			});
+		}
+
+		if ( form.copy ) {
+			form.copy.onclick = () => {
+
+				let newNode = null;
+
+				// run same name checks on type SE
+				if ( form.node.type === "searchEngine" )
+					newNode = addNewEngine(form.node, true);
+				else {
+					newNode = Object.assign({}, form.node);
+					newNode.id = gen();
+
+					newNode.title = newNode.title + " copy";
+					let msg = i18n("EnterUniqueName");
+
+					while(true) {
+						newNode.title = window.prompt(msg, newNode.title);
+						if ( newNode.title ) {
+							newNode.title = newNode.title.trim();
+							break;
+						}
+						else return;
+					}
+				}
+
+				let newLi = addNode(newNode, form.li);
+
+				if ( !newLi ) return;
+				
+				updateNodeList(true);
+
+				form.closeForm();
+
+				newLi.dispatchEvent(new MouseEvent('dblclick'));
+			}
+		}
+
+		form.addFaviconBox = (url) => {
+			let box = form.querySelector('[name="faviconBox"]');
+			box.innerHTML = null;
+			let img = new Image();
+			img.src = url;
+			box.appendChild(img);
+			box.classList.add('inputNice');
+			box.classList.add('upload');
+
+			form.iconPicker.id = form.id + 'IconPicker';
+
+			// let forlabel = document.createElement('label');
+			// forlabel.setAttribute('for', form.iconPicker.id);
+			// forlabel.title = i18n('uploadfromlocal');
+			// box.insertBefore(forlabel, box.firstChild);
+
+			box.onclick = async() => { 
+				let modal = $('faviconModal');
+
+				modal.style.zIndex = 10000;
+				openModal(modal);
+
+				modal.querySelector('[name="iconURL"]').value = form.node.icon;
+
+			//	addIconPickerListener(edit_form.iconPicker, li);
+				addFavIconFinderListener(modal.querySelector('[name="faviconFinder"]'));
+
+				await new Promise(r => {
+					modal.querySelector('[name="cancel"]').onclick = r;
+				})
+
+				closeModal(modal);
+			}
+
+			img.onload = () => {
+				let label = document.createElement('div');
+				label.innerText = img.naturalHeight + " x " + img.naturalWidth;
+				box.appendChild(label);
+			}
+		}
+
+		// update the favicon when the user changes the url
+		form.iconURL.addEventListener('change', e => {
+
+			let defaultIcon = getIconFromNode({type:form.node.type});
+
+			let img = form.querySelector('[name="faviconBox"] img');
+			img.src = form.iconURL.value || defaultIcon;
+		})
+
+		form.save.addEventListener('click', e => {
+			form.save.classList.remove('changed');
+			form.saveclose.classList.remove('changed');
+		});
+
+		// form.querySelector('label[for="filtering"]').addEventListener('click', e => {
+		// 	let block = form.querySelector('[name="filtering"]');
+		// 	block.style.height = !block.style.height ? block.scrollHeight + "px" : null;
+		// 	e.target.style.display = 'none';
+		// })
 	}
 	
 	document.getElementById('b_addSearchEngine').addEventListener('click', e => {
@@ -2408,90 +2525,6 @@ function updateNodeList(forceSave) {
 //	} else {
 		// console.log('node trees are the same - skipping save');
 	//}
-}
-
-function addFormListeners(form) {
-
-	form.addEventListener('input', e => {
-		form.save.classList.add('changed');
-		form.saveclose.classList.add('changed');
-	});
-
-	form.closeForm = () => {
-		
-		let formContainer = $('#floatingEditFormContainer');
-
-		if ( !formContainer ) return;
-		
-		formContainer.parentNode.style.opacity = 0;
-		$('#main').classList.remove('blur');
-		runAtTransitionEnd(formContainer, "opacity", () => {
-		//	form.style.display = null;
-		//	document.body.appendChild(form);
-			document.body.removeChild(formContainer.parentNode);
-		});
-	}
-
-	form.addFaviconBox = (url) => {
-		let box = form.querySelector('[name="faviconBox"]');
-		box.innerHTML = null;
-		let img = new Image();
-		img.src = url;
-		box.appendChild(img);
-		box.classList.add('inputNice');
-		box.classList.add('upload');
-
-		form.iconPicker.id = form.id + 'IconPicker';
-
-		// let forlabel = document.createElement('label');
-		// forlabel.setAttribute('for', form.iconPicker.id);
-		// forlabel.title = i18n('uploadfromlocal');
-		// box.insertBefore(forlabel, box.firstChild);
-
-		box.onclick = async() => { 
-			let modal = $('faviconModal');
-
-			modal.style.zIndex = 10000;
-			openModal(modal);
-
-			modal.querySelector('[name="iconURL"]').value = form.node.icon;
-
-		//	addIconPickerListener(edit_form.iconPicker, li);
-			addFavIconFinderListener(modal.querySelector('[name="faviconFinder"]'));
-
-			await new Promise(r => {
-				modal.querySelector('[name="cancel"]').onclick = r;
-			})
-
-			closeModal(modal);
-		}
-
-		img.onload = () => {
-			let label = document.createElement('div');
-			label.innerText = img.naturalHeight + " x " + img.naturalWidth;
-			box.appendChild(label);
-		}
-	}
-
-	// update the favicon when the user changes the url
-	form.iconURL.addEventListener('change', e => {
-
-		let defaultIcon = getIconFromNode({type:form.node.type});
-
-		let img = form.querySelector('[name="faviconBox"] img');
-		img.src = form.iconURL.value || defaultIcon;
-	})
-
-	form.save.addEventListener('click', e => {
-		form.save.classList.remove('changed');
-		form.saveclose.classList.remove('changed');
-	});
-
-	// form.querySelector('label[for="filtering"]').addEventListener('click', e => {
-	// 	let block = form.querySelector('[name="filtering"]');
-	// 	block.style.height = !block.style.height ? block.scrollHeight + "px" : null;
-	// 	e.target.style.display = 'none';
-	// })
 }
 
 function setContexts(f, c) {
