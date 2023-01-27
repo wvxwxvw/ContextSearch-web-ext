@@ -29,6 +29,7 @@ HTML::-webkit-scrollbar, BODY::-webkit-scrollbar {
 BODY {
 	background: var(--background);
 	position:relative;
+	transition: opacity .5s ease .25s;
 }
 .selectedFocus {
 	background-color: var(--selected) !important;
@@ -48,11 +49,14 @@ BODY {
 	background-size: var(--tile-background-size, 16px);
 	background-position: center;
 	background-repeat: no-repeat;
-	transition: var(--user-transition, background-color .25s ease-out, opacity .25s linear, width .2s linear, margin .25s);
+	transition: var(--user-transition, background-color .25s ease-out, opacity .5s ease, width .2s linear, margin .25s);
 
 	/*z-index:2;*/
 	position: relative;
 	/*float:left;*/
+}
+.tile[data-hidden="true"], GROUP[data-hidden="true"] {
+	display: none !important;
 }
 .tile[data-disabled="true"] {
 	opacity:.1;
