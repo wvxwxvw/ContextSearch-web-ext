@@ -593,7 +593,6 @@ function contextMenuSearch(info, tab) {
 		info.menuItemId = groups[1];
 		info.domain = atob(groups[2]);	
 	}
-
 	info.searchTerms = searchTerms;
 	info.openMethod = openMethod;
 	info.tab = tab;
@@ -601,7 +600,7 @@ function contextMenuSearch(info, tab) {
 
 	// filter searchAll children by context
 	if ( userOptions.contextMenuUseContextualLayout && node.type === "folder" )
-		info.node = filterContexts(node, currentContextMenuContexts);
+		info.node = filterContexts(node, context);
 	
 	openSearch(info);
 	// domain: info.domain || new URL(tab.url).hostname
