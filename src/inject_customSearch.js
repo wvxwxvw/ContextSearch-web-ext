@@ -49,12 +49,14 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 			case "openCustomSearch": {
 
+				let input = document.querySelector("input:focus,textarea:focus");
+
 				// if message contains a search engine, use that
 				if ( message.se ) {
 
 				}
 			
-				if ( !message.se && !window.document.querySelector("input:focus,textarea:focus") && !message.searchEngine ) {
+				if ( !message.se && !input && !message.searchEngine ) {
 					console.log("no focused input found");
 					return;
 				}
@@ -108,12 +110,17 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 						browser.runtime.sendMessage({action: "dataToSearchEngine", formdata: formdata}).then( result => {
 							
+							if ( !input ) {
+								alert("There was a problem adding the engine");
+								return 
+							}
+							
 							// use supplied search engine or get from focused form
 							let se = message.searchEngine || result.searchEngines[0];
 							
 							if (!se.template && !message.timeout) {
 								
-								let input = window.document.querySelector("input:focus,textarea:focus");
+							//	let input = window.document.querySelector("input:focus,textarea:focus");
 								
 								const inputHandler = () => {
 									if (!input.value) return;
@@ -148,20 +155,24 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 			}
 			
 			case "closeCustomSearch": {
-				let iframe = getShadowRoot().getElementById("CS_customSearchIframe");
-				iframe.style.opacity = 0;
-
-				document.body.classList.remove('CS_blur');
-				
-				// remove after transition effect completes
-				setTimeout(() => iframe.parentNode.removeChild(iframe), 250);
-				
+				closeCustomSearch();
 				break;
 			}
 				
 		}
 	}
 });
+
+function closeCustomSearch() {
+	let iframe = getShadowRoot().getElementById("CS_customSearchIframe");
+	iframe.style.opacity = 0;
+
+	document.body.classList.remove('CS_blur');
+	
+	// remove after transition effect completes
+	setTimeout(() => iframe.parentNode.removeChild(iframe), 250);
+	
+}
 
 function getFormData() {
 	// From BurningMoth AddSearch by Spencer T Obremski
