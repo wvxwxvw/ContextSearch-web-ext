@@ -123,14 +123,12 @@ function buildSearchEngineContainer() {
 		}
 
 		if (node.type === 'searchEngine' || node.type === 'siteSearchFolder' ) {
-			
-			let se = node;
 
 			// se stores descriptions vs node ( sometimes / needs work )
 			header.title = node.description || node.title;
 
 			// force typecast as search engine
-			se.type = 'searchEngine';
+			node.type = 'searchEngine';
 
 			let icon = document.createElement('img');
 			icon.src = getIconFromNode(node);
@@ -138,12 +136,10 @@ function buildSearchEngineContainer() {
 			
 			let text = document.createElement('span');
 			text.className = "label";
-			text.innerText = se.title;
+			text.innerText = node.title;
 			header.appendChild(text);
 
-			addMultisearchIcons(se, header);
-
-			node.contexts = node.contexts || se.contexts;
+			addMultisearchIcons(node, header);
 
 			li.addEventListener('dblclick', e => {
 
@@ -276,23 +272,23 @@ function buildSearchEngineContainer() {
 					clearError(label.nextSibling)
 				}
 
-				edit_form.shortName.value = se.title;
-				edit_form.description.value = se.description || "";
-				edit_form.template.value = se.template;
-				edit_form.iconURL.value = se.icon || se.iconCache;
-				edit_form._method.value = se.method || "GET";
-				edit_form.post_params.value = (se.method === 'GET') ? "" : nameValueArrayToParamString(se.params);
-				edit_form._encoding.value = se.queryCharset || "UTF-8";
-				edit_form.searchform.value = se.searchForm || function() {
+				edit_form.shortName.value 	= node.title;
+				edit_form.description.value = node.description || "";
+				edit_form.template.value 	= node.template;
+				edit_form.iconURL.value 	= node.icon || node.iconCache;
+				edit_form._method.value 	= node.method || "GET";
+				edit_form.post_params.value = (node.method === 'GET') ? "" : nameValueArrayToParamString(node.params);
+				edit_form._encoding.value 	= node.queryCharset || "UTF-8";
+				edit_form.searchform.value 	= node.searchForm || function() {
 					try {
-						return new URL(se.template).origin;
+						return new URL(node.template).origin;
 					} catch (err) {
 						return "";
 					}
 				}();
-				edit_form.searchRegex.value = se.searchRegex || "";
-				edit_form.matchRegex.value = se.matchRegex || "";
-				edit_form.searchCode.value = se.searchCode || "";
+				edit_form.searchRegex.value = node.searchRegex || "";
+				edit_form.matchRegex.value 	= node.matchRegex || "";
+				edit_form.searchCode.value 	= node.searchCode || "";
 
 				setContexts(edit_form, node.contexts);
 								
@@ -357,7 +353,7 @@ function buildSearchEngineContainer() {
 						// loading icon is last step. Set values after everything else
 							
 						// alert problems with changing name
-						if (se.title !== edit_form.shortName.value) {
+						if (node.title !== edit_form.shortName.value) {
 							
 							// if firefox, check for ocses and confirm if name exists
 							if ( browser.search && browser.search.get ) {
@@ -369,12 +365,12 @@ function buildSearchEngineContainer() {
 									return;
 							}
 
-							se.title = li.node.title = node.title = edit_form.shortName.value;
+							node.title = li.node.title = node.title = edit_form.shortName.value;
 							
 							// change name on all labels
 							table.querySelectorAll('li').forEach(_li => {
 								if ( _li.node && _li.node.id === node.id )
-									_li.querySelector('.label').innerText = _li.node.title = se.title;
+									_li.querySelector('.label').innerText = _li.node.title = node.title;
 
 							});
 
@@ -400,21 +396,20 @@ function buildSearchEngineContainer() {
 
 						icon.src = iconBase64 || "icons/search.svg";
 
-						se.iconCache = iconBase64;  //icon.src;
-						se.description = edit_form.description.value;
-						se.template = edit_form.template.value;
-						se.searchForm = edit_form.searchform.value;
-						se.icon = edit_form.iconURL.value;
-						se.method = edit_form._method.value;
-						se.queryCharset = edit_form._encoding.value;
-						se.params = paramStringToNameValueArray(edit_form.post_params.value);
-						se.id = se.id || gen();
-						se.searchRegex = edit_form.searchRegex.value;
-						se.matchRegex = edit_form.matchRegex.value;
-						se.searchCode = edit_form.searchCode.value;
+						node.iconCache 		= iconBase64;  //icon.src;
+						node.description 	= edit_form.description.value;
+						node.template 		= edit_form.template.value;
+						node.searchForm 	= edit_form.searchform.value;
+						node.icon 			= edit_form.iconURL.value;
+						node.method 		= edit_form._method.value;
+						node.queryCharset 	= edit_form._encoding.value;
+						node.params 		= paramStringToNameValueArray(edit_form.post_params.value);
+						node.id 			= node.id || gen();
+						node.searchRegex 	= edit_form.searchRegex.value;
+						node.matchRegex 	= edit_form.matchRegex.value;
+						node.searchCode 	= edit_form.searchCode.value;
 
-						se.contexts = getContexts(edit_form);
-						node.contexts = se.contexts;
+						node.contexts 	= getContexts(edit_form);
 						setRowContexts(li);
 						
 						// force a save even if the nodeTree is unchanged
@@ -477,10 +472,11 @@ function buildSearchEngineContainer() {
 				
 				_form.node = node;
 								
-				_form.iconURL.value = node.icon || "";
-				_form.shortName.value = node.title;
-				_form.searchCode.value = node.searchCode || "";
+				_form.iconURL.value 	= node.icon || "";
+				_form.shortName.value 	= node.title;
+				_form.searchCode.value 	= node.searchCode || "";
 				_form.description.value = node.description || "";
+				_form.matchRegex.value 	= node.matchRegex || "";
 
 				_form.searchCode.style.height = '12em';
 
@@ -545,10 +541,12 @@ function buildSearchEngineContainer() {
 					_form.querySelector('[name="faviconBox"] img').src = getIconFromNode(node);
 					img.src = getIconFromNode(node);
 
-					node.title = _form.shortName.value.trim();
-					node.contexts = getContexts(_form);
-					node.searchCode = _form.searchCode.value;
-					node.description = _form.description.value.trim();
+					node.title 			= _form.shortName.value.trim();
+					node.searchCode 	= _form.searchCode.value;
+					node.description 	= _form.description.value.trim();
+					node.matchRegex 	= _form.matchRegex.value;
+					node.contexts 		= getContexts(_form);
+
 					setRowContexts(li);
 
 					text.innerText = node.title;
@@ -688,19 +686,6 @@ function buildSearchEngineContainer() {
 				_form.postScript.value 	= node.postScript || "";
 				_form.matchRegex.value 	= node.matchRegex || "";
 
-				// let cmd = _form.querySelector('label[data-i18n="Template"]');
-				// cmd.innerText = i18n("Command");
-
-				// let cwd = _form.querySelector('label[data-i18n="FormPath"]');
-				// cwd.innerText = i18n("WorkingDirectory");
-
-				// let pas = _form.querySelector('label[data-i18n="SearchCode"]');
-				// pas.innerText = i18n("PostAppScript");
-				// pas.title = i18n("PostAppScriptTooltip");
-
-				// _form.insertBefore(cwd, _form.template.nextSibling);
-				// _form.insertBefore(_form.searchform, cwd.nextSibling);
-
 				(() => {
 					let div = document.createElement('div');
 					_form.appendChild(div);
@@ -764,8 +749,8 @@ function buildSearchEngineContainer() {
 					node.description 	= _form.description.value.trim();
 					node.cwd 			= _form.cwd.value.trim();
 					node.postScript 	= _form.postScript.value.trim();
-					node.contexts 		= getContexts(_form);
 					node.matchRegex 	= _form.matchRegex.value.trim();
+					node.contexts 		= getContexts(_form);
 
 					setRowContexts(li);
 
@@ -844,21 +829,29 @@ function buildSearchEngineContainer() {
 				
 				_form.node = node;
 								
-				_form.iconURL.value = node.icon || "";
-				_form.shortName.value = node.title;
-				_form.shortName.disabled = true;
+				_form.iconURL.value 	= node.icon || img.src || "";
+				_form.shortName.value 	= node.title;
+				_form.searchRegex.value = node.searchRegex || "";
+				_form.searchCode.value 	= node.searchCode || "";
+				_form.matchRegex.value 	= node.matchRegex || "";
 				setContexts(_form, node.contexts);
-				
+
+				_form.shortName.disabled = true;
+
 				_form.close.onclick = _form.closeForm;
 				
 				_form.save.onclick = async function() {
 
 					node.icon = await getFormIcon(_form);
+
+					node.searchRegex 	= _form.searchRegex.value.trim();
+					node.searchCode 	= _form.searchCode.value.trim();
+					node.matchRegex 	= _form.matchRegex.value.trim();
+					node.contexts 		= getContexts(_form);
+
 					_form.querySelector('[name="faviconBox"] img').src = getIconFromNode(node);
 					img.src = getIconFromNode(node);
 
-				//	node.title = _form.shortName.value.trim();
-					node.contexts = getContexts(_form);
 					setRowContexts(li);
 
 					text.innerText = node.title;
@@ -943,14 +936,14 @@ function buildSearchEngineContainer() {
 				_form.save.onclick = function() {
 					showSaveMessage("saved", null, _form.querySelector(".saveMessage"));
 
-					node.title = _form.shortName.value.trim();
-					node.groupColor = _form.groupColor.value;
-					node.groupColorText = _form.groupColorText.value;
-					node.groupFolder = _form.groupFolder.value || false;
-					node.groupLimit = parseInt(_form.groupLimit.value);
-					node.displayType = _form.displayType.value;
-					node.groupHideMoreTile = _form.groupHideMoreTile.checked;
-					node.icon = _form.iconURL.value;
+					node.title 				= _form.shortName.value.trim();
+					node.groupColor 		= _form.groupColor.value;
+					node.groupColorText 	= _form.groupColorText.value;
+					node.groupFolder 		= _form.groupFolder.value || false;
+					node.groupLimit 		= parseInt(_form.groupLimit.value);
+					node.displayType 		= _form.displayType.value;
+					node.groupHideMoreTile 	= _form.groupHideMoreTile.checked;
+					node.icon 				= _form.iconURL.value;
 					updateNodeList();
 
 					text.innerText = node.title;
@@ -966,14 +959,14 @@ function buildSearchEngineContainer() {
 					img.src = _form.iconURL.value || browser.runtime.getURL('icons/folder-icon.svg');
 				});
 								
-				_form.shortName.value = node.title;
-				_form.groupColor.value = node.groupColor || userOptions.defaultGroupColor;
-				_form.groupColorText.value = node.groupColorText || userOptions.defaultGroupColorText;
-				_form.groupFolder.value = node.groupFolder || "";
-				_form.groupLimit.value = node.groupLimit || 0;
-				_form.displayType.value = node.displayType || "";
+				_form.shortName.value 			= node.title;
+				_form.groupColor.value 			= node.groupColor || userOptions.defaultGroupColor;
+				_form.groupColorText.value 		= node.groupColorText || userOptions.defaultGroupColorText;
+				_form.groupFolder.value 		= node.groupFolder || "";
+				_form.groupLimit.value 			= node.groupLimit || 0;
+				_form.displayType.value 		= node.displayType || "";
 				_form.groupHideMoreTile.checked = node.groupHideMoreTile || false;
-				_form.iconURL.value = node.icon || "";
+				_form.iconURL.value 			= node.icon || "";
 				
 				createFormContainer(_form);
 				addIconPickerListener(_form.iconPicker, li);
