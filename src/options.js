@@ -277,11 +277,13 @@ async function restoreOptions(restoreUserOptions) {
 		console.log(`Error: ${error}`);
 
 		if ( confirm(i18n("confirmRestoreOldConfig")) ) {
-
+			document.querySelector('[data-tabid="backupTab"]').click();
 		}
 	}
 
-	await browser.runtime.sendMessage({action: "checkForOneClickEngines"});
+	if ( await browser.runtime.sendMessage({action: "checkForOneClickEngines"}) ) {
+		firefoxSearchEngines = await browser.runtime.sendMessage({action: "getFirefoxSearchEngines"});
+	}
 	return browser.runtime.sendMessage({action: "getUserOptions"}).then(onGot, onError);
 }
 
@@ -294,7 +296,7 @@ function _saveOptions(e) {
 	function onSet() {
 		browser.browserAction.setIcon({path: userOptions.searchBarIcon || 'icons/logo_notext.svg'});
 		showSaveMessage(i18n("saved"), null, document.getElementById('saveNoticeDiv'));
-		$('configSize').innerText = JSON.stringify(userOptions).length + " bytes";
+		$('configSize').innerText = Math.ceil(JSON.stringify(userOptions).length / 1024) + " KBs";
 		document.dispatchEvent(new CustomEvent('userOptionsSaved'));
 		return Promise.resolve(true);
 	}
@@ -450,7 +452,8 @@ document.addEventListener("DOMContentLoaded", async e => {
 	setVersion();
 	buildAdvancedOptions();
 	buildImportExportButtons();
-	buildHelpTab();
+	buildLocaleStrings();
+	//buildHelpTab();
 	buildClearSearchHistory();
 	buildSaveButtons();
 	buildThemes();
@@ -461,9 +464,29 @@ document.addEventListener("DOMContentLoaded", async e => {
 	hideBrowserSpecificElements();
 
 	// (() => {
+
 	// 	document.querySelectorAll('.tabcontent').forEach( tab => {
+
+	// 		if ( !tab.id) {
+	// 			console.log(tab);
+	// 			return;
+	// 		}
 	// 		let headers = tab.querySelectorAll('section > .header1');
-	// 		console.log(tab.id, [...headers].map(h => i18n(h.dataset.i18n)));
+	// 		let header_labels = [...headers].map(h => i18n(h.dataset.i18n));
+
+	// 		let button = document.querySelector(`button[data-tabid="${tab.id}"]`);
+
+	// 		headers.forEach(h => {
+	// 			let div = document.createElement('button');
+	// 			div.className = "tablinks";
+	// 			div.classList.add('sublink')
+	// 			div.dataset.i18n = h.dataset.i18n;
+	// 			div.innerText = h.dataset.i18n;
+
+	// 			if ( button )
+	// 				button.parentNode.insertBefore(div, button.nextSibling);
+	// 		})
+			
 	// 	});
 	// })();
 
@@ -482,48 +505,44 @@ document.addEventListener("DOMContentLoaded", async e => {
 	hashChange();
 	buildUploadOnHash();
 
+	// showBackupDates
+	(async() => {
+		let b_version = document.querySelector('#backupTab [name="versionBackup"]');
+		let b_session = document.querySelector('#backupTab [name="sessionBackup"]');
+
+		let uos = await browser.runtime.sendMessage({action: "getSessionBackup"});
+		if ( !uos ) 
+			b_session.disabled = true;
+		else
+			$	('date_sessionBackup').innerText = new Date(uos.lastUpdated);
+
+		let uob = await browser.storage.local.get("userOptionsBackup").then(result => result.userOptionsBackup);
+		if ( !uob )
+			b_version.disabled = true;
+		else
+			$('date_versionBackup').innerText = new Date(uob.lastUpdated);
+
+		b_session.onclick = () => {
+			if ( confirm(i18n("ConfirmReplaceConfig")) ) saveAndReload(uos);
+		}
+
+		b_version.onclick = () => {
+			if ( confirm(i18n("ConfirmReplaceConfig")) ) saveAndReload(uob);
+		}
+	})();
+
 	document.body.style.opacity = 1;
-
-	// testing moving tools to SEM
-	// (() => {
-
-	// 	let ts = userOptions.quickMenuTools;
-
-	// 	let folder = {
-	// 		type:"folder",
-	// 		title:"Tools Menu",
-	// 		children:[],
-	// 		hidden:false,
-	// 		id:"tools_menu"
-	// 	}
-
-	// 	ts.forEach(t => {
-
-	// 		let tool = QMtools.find( _t => _t.name === t.name);
-
-	// 		folder.children.push({
-	// 			type: "tool",
-	// 			hidden: t.disabled,
-	// 			title: tool.title,
-	// 			icon: tool.icon,
-	// 			tool: tool.name
-	// 		})
-	// 	})
-
-	// 	console.log(folder);
-	// });
-
 });
 
 function addDOMListeners() {
 
-	$('#autoPasteFromClipboard').addEventListener('change', async (e) => {
+	// $('#autoPasteFromClipboard').addEventListener('change', async (e) => {
 		
-		if ( e.target.checked === true ) {
-			e.target.checked = await browser.permissions.request({permissions: ["clipboardRead"]});
-			saveOptions();
-		}
-	});
+	// 	if ( e.target.checked === true ) {
+	// 		e.target.checked = await browser.permissions.request({permissions: ["clipboardRead"]});
+	// 		saveOptions();
+	// 	}
+	// });
 
 	$('#autoCopy').addEventListener('change', async (e) => {
 		if ( e.target.checked === true ) {
@@ -585,7 +604,7 @@ function addDOMListeners() {
 		}
 	})
 
-	$('syncToCloud').addEventListener('click', syncTest);
+	//$('syncToCloud').addEventListener('click', syncTest);
 	$('restoreBackup').addEventListener('click', promptForRestoreBackup);
 }
 
@@ -706,6 +725,10 @@ function hashChange(e) {
 	}
 	
 	for ( button of buttons ) {
+		if ( !button.dataset.tabid ) {
+			console.log(button);
+			continue;
+		}
 		if ( button.dataset.tabid.toLowerCase() === (hash[1] + "tab").toLowerCase() ) {
 			button.click();
 			break;
@@ -946,19 +969,23 @@ function buildImportExportButtons() {
 	b_export.onclick = function() {
 
 		let date = new Date().toISOString().replace(/:|\..*/g,"").replace("T", "_");
+
+		let filename = prompt("filename", `ContextSearchOptions_${date}.json`);
+
+		if ( !filename ) return;
 		
 		if ( userOptions.exportWithoutBase64Icons ) {
 			let uoCopy = Object.assign({}, userOptions);
 			findNodes(uoCopy.nodeTree, node => {
 				if ( node.type === "searchEngine" )
-					node.icon_base64String = "";
+					node.iconCache = "";
 
 				if ( node.type === "oneClickSearchEngine" )
 					node.icon = "";
 			});
-			download(`ContextSearchOptions_${date}.json`, JSON.stringify(uoCopy));
+			download(filename, JSON.stringify(uoCopy));
 		} else {
-			download(`ContextSearchOptions_${date}.json`, JSON.stringify(userOptions));
+			download(filename, JSON.stringify(userOptions));
 		}
 	}
 	
@@ -1059,141 +1086,144 @@ function buildImportExportButtons() {
 					return;
 				}
 
-				// if ( false && userOptions.advancedImport ) {
+				if ( false && userOptions.advancedImport ) {
 
-				// 	$('#main').classList.add('blur');
+					$('#main').classList.add('blur');
 
-				// 	let choice1 = await new Promise( res => {
-				// 		$('#importModal').classList.remove('hide');
+					let choice1 = await new Promise( res => {
+						$('#importModal').classList.remove('hide');
 
-				// 		$('#importModal .replace').addEventListener('click', e => res("replace"));
-				// 		$('#importModal .merge').addEventListener('click', e => res("merge"));
-				// 		$('#importModal .cancel').addEventListener('click', e => res("cancel"));
-				// 	});
-				// 	$('#importModal').classList.add('hide');
+						$('#importModal .replace').addEventListener('click', e => res("replace"));
+						$('#importModal .merge').addEventListener('click', e => res("merge"));
+						$('#importModal .cancel').addEventListener('click', e => res("cancel"));
+					});
+					$('#importModal').classList.add('hide');
 
-				// 	if ( choice1 === "cancel" ) return;
-				// 	if ( choice1 === "merge" ) {
-				// 		await new Promise( res => {
-				// 			$('#importModalCustom').classList.remove('hide');
-				// 			$('#importModalCustom .ok').addEventListener('click', e => res("replace"));
-				// 			$('#importModalCustom .cancel').addEventListener('click', e => res("cancel"));
+					if ( choice1 === "cancel" ) return;
+					if ( choice1 === "merge" ) {
+						await new Promise( res => {
+							$('#importModalCustom').classList.remove('hide');
+							$('#importModalCustom .ok').addEventListener('click', e => res("replace"));
+							$('#importModalCustom .cancel').addEventListener('click', e => res("cancel"));
 
-				// 			let left_browser = $('#importModalCustom [name="nodes_left"]');
-				// 			let right_browser = $('#importModalCustom [name="nodes_right"]');
+							let left_browser = $('#importModalCustom [name="nodes_left"]');
+							let right_browser = $('#importModalCustom [name="nodes_right"]');
 
-				// 			left_browser.innerHTML = null;
-				// 			right_browser.innerHTML = null;
+							left_browser.innerHTML = null;
+							right_browser.innerHTML = null;
 
-				// 			let copy = Object.assign({}, newUserOptions);
-				// 			traverseNodesDeep(copy.nodeTree, (n,p) => {
+							let copy = JSON.parse(JSON.stringify(newUserOptions));
 
-				// 				// remove OCSE from non-FF browsers
-				// 				if ( n.type === "oneClickSearchEngine" && !browser.search )
-				// 					removeNode(n,p);
-				// 				// remove duplicate nodes
-				// 				else if ( findNode(userOptions.nodeTree, _n => _n.id === n.id && JSON.stringify(_n) === JSON.stringify(n)) )
-				// 					removeNode(n,p);
-				// 				// remove missing engines
-				// 				// else if ( n.type === "searchEngine" && !copy.searchEngines.find(se => se.id === n.id ) )
-				// 				// 	removeNode(n,p);
-				// 				// remove empty folders
-				// 				else if ( n.type === "folder" && !n.children.length && p)
-				// 					removeNode(n,p);
+							traverseNodesDeep(copy.nodeTree, (n,p) => {
 
-				// 			})
+								// remove OCSE from non-FF browsers
+								if ( n.type === "oneClickSearchEngine" && ( !browser.search || !browser.search.get ) )
+									removeNode(n,p);
+								// remove duplicate nodes
+								else if ( findNode(userOptions.nodeTree, _n => _n.id === n.id && JSON.stringify(_n) === JSON.stringify(n)) )
+									removeNode(n,p);
+								// remove missing engines
+								// else if ( n.type === "searchEngine" && !copy.searchEngines.find(se => se.id === n.id ) )
+								// 	removeNode(n,p);
+								// remove empty folders
+								else if ( n.type === "folder" && !n.children.length && p)
+									removeNode(n,p);
 
-				// 			left_browser.appendChild(makeFolderBrowser(copy.nodeTree));
-				// 			right_browser.appendChild(makeFolderBrowser({type: "folder", title:"/", id: gen(), children: []}));
+							});
 
-				// 			left_browser.querySelectorAll('li').forEach( li => {
-				// 				li.classList.add('new');
-				// 				li.addEventListener('click', e => {
-				// 					if ( e.target !== li ) return;
+							left_browser.appendChild(makeFolderBrowser(copy.nodeTree));
+							right_browser.appendChild(makeFolderBrowser({type: "folder", title:"/", id: gen(), children: []}));
 
-				// 					let parent = li.closest('.folderBrowser');
-				// 					let notParent = [left_browser, right_browser].find( b => !b.contains(parent));
+							left_browser.querySelectorAll('li').forEach( li => {
+								li.classList.add('new');
+								li.addEventListener('click', e => {
+									if ( e.target !== li ) return;
 
-				// 					if ( left_browser.contains(parent) ) {
-				// 						let div = document.createElement('div');
-				// 						div.dataset.id = li.node.id;
-				// 						li.parentNode.insertBefore(div, li);
-				// 						notParent.querySelector('li[title="/"] > UL').appendChild(li);
-				// 					} else {
-				// 						let placeholder = left_browser.querySelector(`div[data-id="${li.node.id}"]`);
+									let parent = li.closest('.folderBrowser');
+									let notParent = [left_browser, right_browser].find( b => !b.contains(parent));
 
-				// 						if ( placeholder)  {
-				// 							placeholder.parentNode.insertBefore(li, placeholder);
-				// 							placeholder.parentNode.removeChild(placeholder);
-				// 						}
-				// 					}
-				// 				})
-				// 			});
-				// 		}).then( async result => {
+									if ( left_browser.contains(parent) ) {
+										let div = document.createElement('div');
+										div.dataset.id = li.node.id;
+										li.parentNode.insertBefore(div, li);
+										notParent.querySelector('li[title="/"] > UL').appendChild(li);
+									} else {
+										let placeholder = left_browser.querySelector(`div[data-id="${li.node.id}"]`);
 
-				// 			if ( result === "cancel" ) {
-				// 				newUserOptions = null;
-				// 				return;
-				// 			}
+										if ( placeholder)  {
+											placeholder.parentNode.insertBefore(li, placeholder);
+											placeholder.parentNode.removeChild(placeholder);
+										}
+									}
+								})
+							});
+						}).then( async result => {
 
-				// 			let _settings = $('#importModalCustom [name="settings"]').checked;
-				// 			let _history = $('#importModalCustom [name="history"]').checked;
+							if ( result === "cancel" ) {
+								newUserOptions = null;
+								return;
+							}
 
-				// 			if ( !_history )
-				// 				newUserOptions.searchBarHistory = JSON.parse(JSON.stringify(userOptions.searchBarHistory));
+							let _settings = $('#importModalCustom [name="settings"]').checked;
+							let _history = $('#importModalCustom [name="history"]').checked;
 
-				// 			if ( !_settings ) {
-				// 				for ( key in userOptions ) {
-				// 					if ( !["nodeTree", "searchEngines", "searchBarHistory"].includes(key) )
-				// 						newUserOptions[key] = JSON.parse(JSON.stringify(userOptions[key]));
-				// 				}
-				// 			}
+							if ( !_history )
+								newUserOptions.searchBarHistory = JSON.parse(JSON.stringify(userOptions.searchBarHistory));
 
-				// 			let tree = listToNodeTree($('#importModalCustom [name="nodes_right"] .folderBrowser li[title="/"] > UL'));
-				// 			let ids = findNodes(tree, n => n.type === "searchEngine").map(n => n.id);
+							if ( !_settings ) {
+								for ( key in userOptions ) {
+									if ( !["nodeTree", "searchEngines", "searchBarHistory"].includes(key) )
+										newUserOptions[key] = JSON.parse(JSON.stringify(userOptions[key]));
+								}
+							}
 
-				// 			let duplicates = [];
-				// 			ids.forEach( id => {
-				// 				let node = findNode(userOptions.nodeTree, n => n.id === id );
-				// 				if ( node ) duplicates.push(n);
-				// 			});
+							let tree = listToNodeTree($('#importModalCustom [name="nodes_right"] .folderBrowser li[title="/"] > UL'));
+							let ids = findNodes(tree, n => n.type === "searchEngine").map(n => n.id);
 
-				// 			// loop over duplicates to replace, skip, cancel
-				// 			for ( let dupe of duplicates ) {
-				// 				await new Promise( res => {
-				// 					$('#importModalDuplicates').classList.remove('hide');
-				// 					$('#importModalDuplicates [name="message"]').innerText = dupe.title;
-				// 					$('#importModalDuplicates [name="replace"]').addEventListener('click', e => res("replace"));
-				// 					$('#importModalDuplicates [name="skip"]').addEventListener('click', e => res("skip"));
-				// 					$('#importModalDuplicates [name="cancel"]').addEventListener('click', e => res("cancel"));
-				// 				}).then(result => {
-				// 					if ( result === "skip" )
-				// 						removeNodesById(tree, dupe.id);
+							let duplicates = [];
+							ids.forEach( id => {
+								let node = findNode(userOptions.nodeTree, n => n.id === id );
+								if ( node ) duplicates.push(n);
+							});
 
-				// 					$('#importModalDuplicates').classList.add('hide');
-				// 				});
-				// 			}
+							// loop over duplicates to replace, skip, cancel
+							for ( let dupe of duplicates ) {
+								await new Promise( res => {
+									$('#importModalDuplicates').classList.remove('hide');
+									$('#importModalDuplicates [name="message"]').innerText = dupe.title;
+									$('#importModalDuplicates [name="replace"]').addEventListener('click', e => res("replace"));
+									$('#importModalDuplicates [name="skip"]').addEventListener('click', e => res("skip"));
+									$('#importModalDuplicates [name="cancel"]').addEventListener('click', e => res("cancel"));
+								}).then(result => {
+									if ( result === "skip" )
+										removeNodesById(tree, dupe.id);
 
-				// 			if ( duplicates.length ) console.error(duplicates);
+									$('#importModalDuplicates').classList.add('hide');
+								});
+							}
 
-				// 			// append searchEngines
-				// 			// let ses = userOptions.searchEngines.filter(se => ids.includes(se.id));
-				// 			// newUserOptions.searchEngines = userOptions.searchEngines.concat(ses);
+							if ( duplicates.length ) console.error(duplicates);
+
+							// append searchEngines
+							// let ses = userOptions.searchEngines.filter(se => ids.includes(se.id));
+							// newUserOptions.searchEngines = userOptions.searchEngines.concat(ses);
 							
-				// 			// append tree to newUserOptions
-				// 			tree.title = "Imported";
-				// 			newUserOptions.nodeTree = JSON.parse(JSON.stringify(userOptions.nodeTree));
+							// append tree to newUserOptions
+							tree.title = "Imported";
+							newUserOptions.nodeTree = JSON.parse(JSON.stringify(userOptions.nodeTree));
 
-				// 			if ( tree.children.length )
-				// 				newUserOptions.nodeTree.children.push(JSON.parse(JSON.stringify(tree)));
+							if ( tree.children.length )
+								newUserOptions.nodeTree.children.push(JSON.parse(JSON.stringify(tree)));
 
-				// 		});
+						});
 
-				// 		$('#importModalCustom').classList.add('hide');
-				// 	}
+						$('#importModalCustom').classList.add('hide');
+					}
 
-				// 	$('#main').classList.remove('blur');
-				// }
+					$('#main').classList.remove('blur');
+
+					return;
+				}
 
 				// check for cancel
 				if ( !newUserOptions ) return;
@@ -1209,33 +1239,45 @@ function buildImportExportButtons() {
 						return;
 				}
 
-				// load icons to base64 if missing
-				let overDiv = document.createElement('div');
-				overDiv.style = "position:fixed;left:0;top:0;height:100%;width:100%;z-index:9999;background-color:rgba(255,255,255,.85);background-image:url(icons/spinner.svg);background-repeat:no-repeat;background-position:center center;background-size:64px 64px;line-height:100%";
-				let msgDiv = document.createElement('div');
-				msgDiv.style = "text-align:center;font-size:12px;color:black;top:calc(50% + 44px);position:relative;background-color:white";
-				msgDiv.innerText = i18n("Fetchingremotecontent");
-				overDiv.appendChild(msgDiv);
-				document.body.appendChild(overDiv);
-				let sesToBase64 = findNodes(_uo.nodeTree, n => n.type === "searchEngine").filter(se => !se.icon_base64String);
+				let modal = $('loadingRemoteContentModal');
+				openModal(modal);
+
+				let sesToBase64 = findNodes(_uo.nodeTree, n => n.type === "searchEngine").filter(se => !se.iconCache);
 				let details = await loadRemoteIcon({searchEngines: sesToBase64, timeout:10000});
 
-				// load OCSE favicons
+				closeModal(modal);
+
+				// remove bad OCSE
+				let badNodes = [];
 				if ( browser.search && browser.search.get ) {
 					let ocses = await browser.search.get();
 					findNodes(_uo.nodeTree, node => {
 						if ( node.type === "oneClickSearchEngine" ) {
 							let ocse = ocses.find(_ocse => _ocse.name === node.title);	
-							if ( ocse ) node.icon = ocse.favIconUrl;
+							if ( !ocse ) badNodes.push(node);
 						}
 					});
 				} else {
-					findNodes(_uo.nodeTree, node => {
-						if ( node.type === "oneClickSearchEngine" ) node.hidden = true;
-					});
+					badNodes = findNodes(_uo.nodeTree, node => node.type === "oneClickSearchEngine");
 				}
 
-				userOptions = _uo;
+				badNodes.forEach( n => removeNodesById(_uo.nodeTree, n.id));
+
+				// load OCSE favicons
+				// if ( browser.search && browser.search.get ) {
+				// 	let ocses = await browser.search.get();
+				// 	findNodes(_uo.nodeTree, node => {
+				// 		if ( node.type === "oneClickSearchEngine" ) {
+				// 			let ocse = ocses.find(_ocse => _ocse.name === node.title);	
+				// 			if ( ocse ) node.icon = ocse.favIconUrl;
+				// 		}
+				// 	});
+				// } else {
+				// 	findNodes(_uo.nodeTree, node => {
+				// 		if ( node.type === "oneClickSearchEngine" ) node.hidden = true;
+				// 	});
+				// }
+
 				await browser.runtime.sendMessage({action: "saveUserOptions", userOptions: _uo});
 				location.reload();
 				
@@ -1283,8 +1325,7 @@ function listToNodeTree(ul) {
 	return tree;
 }
 
-function buildHelpTab() {
-
+function buildLocaleStrings() {
 	function traverse(node) {
 		
 		if (node.nodeType === 3 && node.nodeValue.trim())
@@ -1326,6 +1367,9 @@ function buildHelpTab() {
 		el.title = i18n(el.title.replace(/^\$/, "") );
 	//	el.style.cursor = "help";
 	});
+}
+
+function buildHelpTab() {
 
 	// add locale-specific styling
 	var link = document.createElement( "link" );
@@ -1430,7 +1474,7 @@ function showSaveMessage(str, color, el) {
 	el.innerHTML = null;	
 	let msgSpan = document.createElement('span');
 
-	msgSpan.style = "display:inline-block;font-size:10pt;font-family:'Courier New', monospace;font-weight:600;opacity:1;transition:opacity 1s .75s;padding:1px 12px;border-radius:8px;box-shadow:4px 4px 8px #0003;border:2px solid var(--border1)";
+	msgSpan.style = "display:inline-block;font-size:10pt;font-family:'Courier New', monospace;font-weight:600;opacity:1;transition:opacity .75s .5s;padding:1px 12px;border-radius:8px;box-shadow:4px 4px 8px #0003;border:2px solid var(--border1)";
 	msgSpan.style.backgroundColor = "var(--bg-color2)";
 	msgSpan.innerText = str;
 
@@ -1591,7 +1635,7 @@ $("#replaceMozlz4FileButton").addEventListener('change', ev => {
 			_loadPath: "[other]addEngineWithDetails",
 			description: se.title,
 			__searchForm: se.searchForm,
-			_iconURL: se.icon_base64String,
+			_iconURL: se.iconCache,
 			_metaData: {
 				alias: null,
 				order: null
@@ -1647,29 +1691,29 @@ $('#b_uncacheIcons').addEventListener('click', e => {
 	}
 });
 
-function cacheAllIcons(e) {
+function cacheAllIcons() {
 	let result = cacheIcons();
-	let msg = document.createElement('div');
-	msg.style = "margin:2px";
-	msg.innerText = "cache progress";
-	e.target.parentNode.insertBefore(msg, e.target.nextSibling);
+	let modal = $('#cacheModal');
+	openModal(modal);
+	let msg = modal.querySelector('[name="message"]');
 
-	let length = findNodes(userOptions.nodeTree, n => n.type === 'searchEngine').length;
+	modal.querySelector('[name="ok"]').onclick = () => {
+		closeModal(modal);
+	}
 
 	let interval = setInterval(() => {
-		msg.innerText = `caching ${result.count - 1} / ${length}`;
+		msg.innerText = `caching ${result.count - 1} / ${result.total}`;
 	}, 100);
 
 	result.oncomplete = function() {
 		clearInterval(interval);
-		if ( result.bad.length )
-			msg.innerText = i18n("warningCache");
-		else
-			msg.innerText = "done";
 
-		setTimeout(() => {
-			if (msg && msg.parentNode ) msg.parentNode.removeChild(msg);
-		}, 5000);
+		// if ( result.bad.length )
+		// 	msg.innerText = i18n("warningCache");
+		// else
+		// 	msg.innerText = "done";
+
+		modal.querySelector('[name="ok"]').onclick();
 
 		saveOptions();
 	}
@@ -2040,36 +2084,37 @@ document.addEventListener('change', e => {
 
 $('b_manualEdit').addEventListener('click', e => {
 
-	let on = $('advancedSettingsTable').style.display == 'none' ? true : false;
+	$('b_manualEdit').style.display = 'none';
 
-	if ( !on ) {
+	//if ( !confirm(i18n("manualeditwarning"))) return;
 
-		if ( !confirm(i18n("manualeditwarning"))) return;
+	$('advancedSettingsTable').style.display = 'none';
+	[$('t_manualEdit'), $('b_manualSave'), $('b_manualClose')].forEach( el => el.style.display=null );
 
-		$('t_manualEdit').style.height = window.innerHeight - 120 + "px";//$('advancedSettingsTable').getBoundingClientRect().height + "px";
-		$('advancedSettingsTable').style.display = 'none';
-		[$('t_manualEdit'), $('b_manualSave')].forEach( el => el.style.display=null );
+	let o = JSON.parse(JSON.stringify(userOptions));
+	delete o.searchEngines;
+	delete o.searchBarHistory;
+	delete o.nodeTree;
 
-		let o = JSON.parse(JSON.stringify(userOptions));
-		delete o.searchEngines;
-		delete o.searchBarHistory;
-		delete o.nodeTree;
+	const ordered = Object.keys(o).sort().reduce(
+		(obj, key) => { 
+		obj[key] = o[key]; 
+		return obj;
+	}, 
+	{}
+	);
 
-		const ordered = Object.keys(o).sort().reduce(
-			(obj, key) => { 
-			obj[key] = o[key]; 
-			return obj;
-		}, 
-		{}
-		);
+	$('t_manualEdit').innerHTML = syntaxHighlight(JSON.stringify(ordered, null, 4))
 
-		$('t_manualEdit').innerHTML = syntaxHighlight(JSON.stringify(ordered, null, 4))
-	} else {
-		$('advancedSettingsTable').style.display = null;
-		[$('t_manualEdit'), $('b_manualSave')].forEach( el => el.style.display='none' );
-		$('b_manualSave').classList.remove('changed');
-	}
 })
+
+$('b_manualClose').addEventListener('click', e => {
+	$('advancedSettingsTable').style.display = null;
+	[$('t_manualEdit'), $('b_manualSave'), $('b_manualClose')].forEach( el => el.style.display='none' );
+	$('b_manualSave').classList.remove('changed');
+
+	$('b_manualEdit').style.display = null;
+});
 
 $('t_manualEdit').addEventListener('input', e => {
 	$('b_manualSave').classList.add('changed');
@@ -2119,6 +2164,7 @@ function createEditMenu() {
 
 	let formContainer = document.createElement('div');
 	formContainer.id = "floatingEditFormContainer";
+	formContainer.className = "modal";
 	formContainer.style = "width:90%;height:90%;";
 
 	let fb = document.createElement('ul');
@@ -2187,6 +2233,16 @@ async function checkForNativeAppUpdate() {
 	return browser.runtime.sendNativeMessage("contextsearch_webext", {checkForUpdate:true});
 }
 
+function openModal(el) {
+	$('#main').classList.add('blur');
+	el.classList.remove('hide');
+}
+
+function closeModal(el) {
+	$('#main').classList.remove('blur');
+	el.classList.add('hide');
+}
+
 function makeFolderBrowser(tree) {
 
 	let ul = document.createElement('ul');
@@ -2207,7 +2263,10 @@ function makeFolderBrowser(tree) {
 		img.src = getIconFromNode(node);
 		img.style.marginRight = '8px';
 		_li.appendChild(img);
-		_li.appendChild(document.createTextNode(node.title));
+		let header = document.createElement('div');
+		header.style = "display:inline-block";
+		header.innerText = node.title;
+		_li.appendChild(header);
 
 		if (_li.node.type === "oneClickSearchEngine") {
 			_li.appendChild(document.createElement('firefox-icon'));
@@ -2233,6 +2292,8 @@ function makeFolderBrowser(tree) {
 				collapse.innerText = _ul.style.display ? "+" : "-";
 			}
 
+			header.onclick = collapse.onclick;
+
 			node.children.forEach( child => traverse(child, _ul) );
 		}
 	}
@@ -2253,7 +2314,8 @@ function makeFolderBrowser(tree) {
 		li.ondragend = function(e) {e.preventDefault();}
 	});
 
-	ul.querySelector('ul').style.display = null;
+	if ( ul.querySelector('ul'))
+		ul.querySelector('ul').style.display = null;
 
 	return ul;
 }
@@ -2263,18 +2325,20 @@ function syncTest() {
 
 	let badNodes = findNodes(uo.nodeTree, n => {
 		if ( n.type !== 'oneClickSearchEngine' && n.icon && n.icon.startsWith('data:') ) return true;
-		if ( n.icon_url && n.icon_url.startsWith('data:') ) return true;
+		if ( n.icon && n.icon.startsWith('data:') ) return true;
 	});
 
 	console.log('bad nodes', badNodes);
 
-	badNodes.forEach(n => {
-		if ( n.icon_url ) n.icon_url = "";
-		if ( n.icon ) n.icon = "";
-	});
+	// badNodes.forEach(n => {
+	// 	if ( n.icon ) n.icon = "";
+	// });
 	
+	console.log('null oneClickSearchEngine icons')
 	findNodes(uo.nodeTree, n => n.type === 'oneClickSearchEngine').forEach( n => n.icon = "");
-	findNodes(uo.nodeTree, n => n.type === 'searchEngine').forEach( n => n.icon_base64String = "");
+	console.log('null iconCache');
+	findNodes(uo.nodeTree, n => n.type === 'searchEngine').forEach( n => n.iconCache = "");
+	console.log('null history');
 	uo.searchBarHistory = [];
 
 	let totalSize = JSON.stringify(uo).length
@@ -2307,11 +2371,10 @@ function syncTest() {
 }
 
 async function promptForRestoreBackup() {
-		$('#main').classList.add('blur');
 		let modal = $('#modalRestoreBackup');
+		openModal(modal);
 
 		let result = await new Promise( res => {
-			modal.classList.remove('hide');
 
 			modal.querySelectorAll('BUTTON[name]').forEach( el => {
 				el.addEventListener('click', e => res(el.name));
@@ -2326,12 +2389,14 @@ async function promptForRestoreBackup() {
 
 		}
 			
-		modal.classList.add('hide');
-		$('#main').classList.remove('blur');
+		closeModal(modal);
 
-
-			// browser.runtime.sendMessage({action: "restorePreviousVersion"}).then( result => {
-			// 	window.location.reload();
-			// });
+		// browser.runtime.sendMessage({action: "restorePreviousVersion"}).then( result => {
+		// 	window.location.reload();
+		// });
 }
 
+function saveAndReload(o) {
+	browser.runtime.sendMessage({action: "saveUserOptions", userOptions: o})
+		.then(() => location.reload());
+}
