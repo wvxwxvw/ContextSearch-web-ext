@@ -323,7 +323,7 @@
   },
   
   "ImportHeader": {
-    "message": "Import One-Click Search Engines"
+    "message": "Import Firefox Search Engines"
   },
   
   "ImportDescription": {
@@ -343,7 +343,7 @@
   },
   
   "EnableAutoImportTooltip": {
-    "message": "Import new OpenSearch engines to ContextSearch automatically. Only useful when importing OpenSearch engines installed through Firefox's One-Click Search Engine API. Requires a separate app. See 'Help' for more details"
+    "message": "Import new OpenSearch engines to ContextSearch automatically. Only useful when importing OpenSearch engines installed through Firefox's Search Engine API. Requires a separate app. See 'Help' for more details"
   },
   
   "ProfilePath": {
@@ -463,7 +463,7 @@
   },
   
   "AlsoAdd": {
-    "message": "Also add to One-Click Search Engines?"
+    "message": "Also add to Firefox Search Engines?"
   },
   
   "CannotCreate": {
@@ -824,7 +824,7 @@
   },
   
   "NameChangeWarning": {
-    "message": "Renaming search engines can cause duplicate entries when importing One-Click search engines from Firefox using manual or automatic import. This can be fixed by removing engines with the old name from Firefox Options->Search->One-Click Search Engines or simply hide the unwanted engine. Are you sure you want to rename?",
+    "message": "Renaming search engines can cause duplicate entries when importing Firefox search engines from Firefox using manual or automatic import. This can be fixed by removing engines with the old name from Firefox Options-> Search-> Search Engines or simply hide the unwanted engine. Are you sure you want to rename?",
     "description": "warn user about potential problems when changing search engine names"
   },
   
@@ -919,8 +919,8 @@
   },
   
   "AddOpenSearchEngine": {
-    "message": "Install to Firefox One-Click Search Engines",
-    "description": "label for edit form button to install the current search engine as a One-Click Search Engine"
+    "message": "Install to Firefox Search Engines",
+    "description": "label for edit form button to install the current search engine as a Firefox Search Engine"
   },
   
   "Regex": {
@@ -1138,7 +1138,7 @@
   },
 
   "OCSEDeleteWarning": {
-    "message": "Firefox One-Click Search Engines cannot be deleted. Hide to disable",
+    "message": "Firefox Search Engines cannot be deleted. Hide to disable",
     "description": "alert message when attempting to delete a ocse from the manager"
   },
   
@@ -2567,6 +2567,26 @@
   },
   "BackupAndRestore": {
     "message": "Backup & Restore"
+  },
+  "File": {
+    "message": "File"
+  },
+  "Merge": {
+    "message": "Merge"
+  },
+  "Replace": {
+    "message": "Replace"
+  },
+  "ConfirmReplaceConfig": {
+    "message": "Replace current config?"
+  },
+  "SearchBarEngines": {
+    "message": "SearchBar Engines"
+  },
+  "ContextFiltering": {
+    "message": "Context Filtering"
+  },
+  "RegexFiltering": {
+    "message": "Regex Filtering"
   }
-
 }
