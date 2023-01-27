@@ -486,6 +486,7 @@ function buildSearchEngineContainer() {
 
 				let s_bookmarklets = document.createElement('select');
 				s_bookmarklets.style.width = 'auto';
+				s_bookmarklets.style.marginTop = '16px';
 				// b_bookmarklets.innerText = "Find Bookmarlets";
 				let default_o = document.createElement('option');
 				default_o.innerText = i18n("SearchBookmarklets");
@@ -581,16 +582,19 @@ function buildSearchEngineContainer() {
 
 		if (node.type === 'tool') {
 
-			let img = document.createElement('img');
-			img.src = getIconFromNode(node);
-			header.appendChild(img);
+			// let img = document.createElement('img');
+			// img.src = getIconFromNode(node);
+			// header.appendChild(img);
+
+			let tool = createMaskIcon(node.icon);
+			header.appendChild(tool);
 
 			let text = document.createElement('span');
 			text.innerText = node.title;
 			text.className = "label";
 			header.appendChild(text);
 
-			li.addEventListener('dblclick', _edit);
+		//	li.addEventListener('dblclick', _edit);
 
 			function _edit() {
 			
@@ -664,7 +668,7 @@ function buildSearchEngineContainer() {
 				let _form = $('editFormTemplate').cloneNode(true);
 				_form.id = null;
 
-				removeFormNames(_form, [ "copy"]);
+				removeFormNames(_form, [ "copy", "searchCode"]);
 
 				let contentForm = $('editExternalProgramForm').cloneNode(true);
 				contentForm.style.display = 'block';
@@ -675,13 +679,14 @@ function buildSearchEngineContainer() {
 				
 				_form.node = node;
 								
-				_form.iconURL.value = node.icon || "";
-				_form.shortName.value = node.title;
-				_form.command.value = node.path;
+				_form.iconURL.value 	= node.icon || "";
+				_form.shortName.value 	= node.title;
+				_form.path.value 		= node.path;
 				_form.searchRegex.value = node.searchRegex;
 				_form.description.value = node.description || "";
-				_form.cwd.value = node.cwd || "";
-				_form.postScript.value = node.postScript || "";
+				_form.cwd.value 		= node.cwd || "";
+				_form.postScript.value 	= node.postScript || "";
+				_form.matchRegex.value 	= node.matchRegex || "";
 
 				// let cmd = _form.querySelector('label[data-i18n="Template"]');
 				// cmd.innerText = i18n("Command");
@@ -753,13 +758,15 @@ function buildSearchEngineContainer() {
 					_form.querySelector('[name="faviconBox"] img').src = getIconFromNode(node);
 					img.src = getIconFromNode(node);
 
-					node.title = _form.shortName.value.trim();
-					node.path = _form.template.value.trim();
-					node.searchRegex = _form.searchRegex.value.trim();
-					node.description = _form.description.value.trim();
-					node.cwd = _form.searchform.value.trim();
-					node.postScript = _form.searchCode.value;
-					node.contexts = getContexts(_form);
+					node.title 			= _form.shortName.value.trim();
+					node.path 			= _form.path.value.trim();
+					node.searchRegex 	= _form.searchRegex.value.trim();
+					node.description 	= _form.description.value.trim();
+					node.cwd 			= _form.cwd.value.trim();
+					node.postScript 	= _form.postScript.value.trim();
+					node.contexts 		= getContexts(_form);
+					node.matchRegex 	= _form.matchRegex.value.trim();
+
 					setRowContexts(li);
 
 					text.innerText = node.title;
@@ -831,7 +838,7 @@ function buildSearchEngineContainer() {
 				let _form = $('editFormTemplate').cloneNode(true);
 				_form.id = null;
 
-				removeFormNames(_form, ["description","copy","test", "contexts", "matchRegex"]);
+				removeFormNames(_form, ["description","copy","test"]);
 
 				addFormListeners(_form);
 				
@@ -919,7 +926,7 @@ function buildSearchEngineContainer() {
 				let _form = $('editFormTemplate').cloneNode(true);
 				_form.id = null;
 
-				removeFormNames(_form, ["description", "copy", "test", "matchRegex", "contexts"]);
+				removeFormNames(_form, ["description", "copy", "test", "matchRegex", "contexts", "searchRegex", "searchCode"]);
 
 				let contentForm = $('folderFormTable').cloneNode(true);
 				contentForm.style.display = 'block';
@@ -2487,11 +2494,11 @@ function addFormListeners(form) {
 		form.saveclose.classList.remove('changed');
 	});
 
-	form.querySelector('label[for="filtering"]').addEventListener('click', e => {
-		let block = form.querySelector('[name="filtering"]');
-		block.style.height = !block.style.height ? block.scrollHeight + "px" : null;
-		e.target.style.display = 'none';
-	})
+	// form.querySelector('label[for="filtering"]').addEventListener('click', e => {
+	// 	let block = form.querySelector('[name="filtering"]');
+	// 	block.style.height = !block.style.height ? block.scrollHeight + "px" : null;
+	// 	e.target.style.display = 'none';
+	// })
 }
 
 function setContexts(f, c) {
