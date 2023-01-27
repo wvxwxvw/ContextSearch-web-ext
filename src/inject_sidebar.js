@@ -241,8 +241,6 @@ function openSideBar(options) {
 	
 	}
 
-	console.log(options);
-
 	if ( options.openOnResultsLastOpenedFolder && !userOptions.rememberLastOpenedFolder ) {
 		browser.runtime.sendMessage({action: "getLastOpenedFolder"}).then( id => {
 			iframe.src = browser.runtime.getURL('/searchbar.html?folderId=' + id);
