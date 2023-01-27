@@ -8,9 +8,9 @@ function formToSearchEngine() {
 	return {
 		"searchForm": form.searchform.value, 
 		"description": form.description.value,
-		"icon_url":form.iconURL.value,
+		"icon":form.iconURL.value,
 		"title":form.shortname.value,
-		"icon_base64String": imageToBase64(form.icon, userOptions.cacheIconsMaxSize), 
+		"iconCache": imageToBase64(form.icon, userOptions.cacheIconsMaxSize), 
 		"method": form._method.value, 
 		"params": paramStringToNameValueArray(form.post_params.value), 
 		"template": form.template.value, 
@@ -313,7 +313,7 @@ function addSearchEnginePopup(data) {
 	}
 
 	// data-type images are invalid, replace with generic favicon.ico
-	let favicon_url = (se.icon_url && !se.icon_url.startsWith("data")) ? se.icon_url : new URL(se.template).origin + "/favicon.ico";
+	let favicon_url = (se.icon && !se.icon.startsWith("data")) ? se.icon : new URL(se.template).origin + "/favicon.ico";
 
 	// Listen for updates to iconURL, replace img.src and disable sending OpenSearch.xml request until loaded
 	form.iconURL.addEventListener('change', ev => {
@@ -520,10 +520,10 @@ function testOpenSearch(form) {
 
 	let tempSearchEngine = {
 		"searchForm": form.searchform.value, 
-		// "icon_url": form.iconURL.value,
+		// "icon": form.iconURL.value,
 		// "title": form.shortname.value,
 		// "order":"", 
-		// "icon_base64String": "", 
+		// "iconCache": "", 
 		"method": form._method.value, 
 		"params": params, 
 		"template": form.template.value, 

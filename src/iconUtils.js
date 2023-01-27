@@ -2,21 +2,21 @@ function uncacheIcons() {
 
 	for ( let se of findNodes(userOptions.nodeTree, n => n.type === "searchEngine") ) {
 
-		let hasDataURI = se.icon_base64String.startsWith('data:');
-		let isDataURI = se.icon_url.startsWith("data:");
-		let hasURL = se.icon_url.startsWith("http");
+		let hasDataURI = se.iconCache.startsWith('data:');
+		let isDataURI = se.icon.startsWith("data:");
+		let hasURL = se.icon.startsWith("http");
 
-		if ( !se.icon_base64String) continue;
+		if ( !se.iconCache) continue;
 
 		if ( hasURL && hasDataURI) {
 			console.log(se.title + " cache will be cleared");
-			se.icon_base64String = "";
+			se.iconCache = "";
 			continue;
 		}
 
 		if ( hasDataURI && isDataURI && hasDataURI == isDataURI ) {
 			console.log(se.title + " duplicate data URIs. Removing cache");
-			se.icon_base64String = "";
+			se.iconCache = "";
 			continue;
 		}
 
@@ -30,7 +30,7 @@ function cacheIcons() {
 		count:0,
 		last_message:"",
 		bad: [],
-		total: findNodes(userOptions.nodeTree, n => n.type === "searchEngine").length,
+		total: findNodes(userOptions.nodeTree, n => n.hasOwnProperty("icon")).length,
 		oncomplete: function() {},
 		cache: cache
 	};
@@ -42,17 +42,18 @@ function cacheIcons() {
 
 	function cache() {
 
-		for (let se of findNodes(userOptions.nodeTree, n => n.type === "searchEngine")) {
-			let hasDataURI = se.icon_base64String.startsWith('data:');
-			let isDataURI = se.icon_url.startsWith("data:");
-			let hasURL = se.icon_url.startsWith("http");
+		for (let se of findNodes(userOptions.nodeTree, n => n.hasOwnProperty("icon"))) {
+			let hasDataURI = se.iconCache.startsWith('data:');
+			let isDataURI = se.icon.startsWith("data:");
+			let hasURL = se.icon.startsWith("http");
 
-			// if ( isDataURI ) {
-			// 	onError(se, "DATA_URI");
-			// 	continue;
-			// }
+			if ( isDataURI ) { // only keep one data: copy
+				onError(se, "DATA_URI");
+				se.iconCache = "";
+				continue;
+			}
 
-			if ( !se.icon_url ) {
+			if ( !se.icon ) {
 				onError(se, "NO_URL");
 				continue;
 			}
@@ -75,7 +76,7 @@ function cacheIcons() {
 				let data = await imageToBase64(img, userOptions.cacheIconsMaxSize); 
 
 				if ( data != "" ) {
-					se.icon_base64String = data;
+					se.iconCache = data;
 					result.last_message = se.title;
 					result.count++;
 				}
