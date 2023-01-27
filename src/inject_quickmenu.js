@@ -161,10 +161,11 @@ function makeMenuWindow(o) {
 
 	qmc.id = o.id;
 	qmc.className = "CS_quickMenuIframe";
-	
-	qmc.style.opacity = 0;
-	qmc.style.width = 0;
-	qmc.style.height = 0;
+
+	qmc.style.scale = 0;
+	setTimeout(() => {
+		qmc.style.scale = 1;
+	}, 500);
 
 	qmc.allowTransparency = true;
 	
