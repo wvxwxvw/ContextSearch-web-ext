@@ -1,3 +1,9 @@
+if ( typeof firefoxSearchEngines === 'undefined' ) {
+	browser.runtime.sendMessage({action: "getFirefoxSearchEngines"}).then(result => {
+		window.firefoxSearchEngines = result;
+	});
+}
+
 function findNodes(tree, callback) {
 		
 	let results = [];
@@ -154,22 +160,30 @@ function repairNodeTree(tree) {
 
 function getIconFromNode(node) {
 
-	let iconUrl = (() => {
+	if ( node.type === "oneClickSearchEngine") {
+		let ocse = window.firefoxSearchEngines.find(ocse => ocse.name === node.title);
+		return ocse ? ocse.favIconUrl : browser.runtime.getURL('icons/alert.svg');
+	}
+
+	const iconUrl = () => {
 	
 		if ( node.type === "searchEngine" || node.type === "siteSearch" || node.type === "siteSearchFolder") {
-			return node.icon_base64String || node.icon_url || browser.runtime.getURL('icons/search.svg');
+			return node.iconCache || node.icon || browser.runtime.getURL('icons/search.svg');
 		} else if ( node.type === "bookmarklet" ) {
-			return node.icon || browser.runtime.getURL('icons/code_color.svg');
+			return node.iconCache || node.icon || browser.runtime.getURL('icons/code_color.svg');
 		} else if ( node.type === "folder" ) {
-			return node.icon || browser.runtime.getURL('icons/folder-icon.svg');	
+			return node.iconCache || node.icon || browser.runtime.getURL('icons/folder-icon.svg');	
 		} else if ( node.type === "externalProgram" ) {
-			return node.icon || browser.runtime.getURL('icons/terminal_color.svg');
-		} else {
-			return node.icon || "";
-		}
-	})();
+			return node.iconCache || node.icon || browser.runtime.getURL('icons/terminal_color.svg');
+		} else if ( node.type === "oneClickSearchEngine" ) {
 
-	return iconUrl.replace(/http:\/\//, "https://");
+			return node.iconCache || node.icon || browser.runtime.getURL('icons/search.svg');
+		} else {
+			return node.iconCache || node.icon || browser.runtime.getURL('icons/logo_notext.svg');
+		}
+	}
+
+	return iconUrl().replace(/http:\/\//, "https://");
 }
 
 function nodeCut(node, parent) {
