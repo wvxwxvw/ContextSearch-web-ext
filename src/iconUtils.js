@@ -97,7 +97,7 @@ function cacheIcons() {
 					result.oncomplete();
 			}
 
-			img.src = se.icon_url;
+			img.src = se.icon;
 		}
 	}
 
@@ -159,12 +159,21 @@ function addFavIconFinderListener(finder) {
 		overdiv.className = 'overDiv';
 		document.body.appendChild(overdiv);
 
+		let div = document.createElement('div');
+		div.id = "faviconPickerContainer";
+		div.className = "modal";
+		overdiv.style.opacity = 0;
+		overdiv.appendChild(div);
+
+		overdiv.offsetWidth;
+		overdiv.style.opacity = 1;
+
 		let spinner = new Image();
 		spinner.src = 'icons/spinner.svg';
-		spinner.style = 'height:64px;width:64px;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10000';
-		overdiv.appendChild(spinner);
+		spinner.style = 'height:32px;width:32px;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);';
+		div.appendChild(spinner);
 
-		let form = finder.closest("form");
+		let form = $('#floatingEditFormContainer > FORM');
 		form.parentNode.classList.add('blur');
 
 		let url;
@@ -211,14 +220,6 @@ function addFavIconFinderListener(finder) {
 		}
 
 		spinner.parentNode.removeChild(spinner);
-
-		let div = document.createElement('div');
-		div.id = "faviconPickerContainer";
-		overdiv.style.opacity = 0;
-		overdiv.appendChild(div);
-
-		overdiv.offsetWidth;
-		overdiv.style.opacity = 1;
 
 		function makeFaviconPickerBoxes(urls) {
 
