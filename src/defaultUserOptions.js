@@ -1,6 +1,14 @@
 const defaultUserOptions = {
 	searchEngines: [],
-	nodeTree: {},
+	nodeTree: {
+		title: "/",
+		type: "folder",
+		children: [
+			
+		],
+		hidden: false,
+		id: "___root___"
+	},
 	lastUsedId: "",
 	lastUsedMethod: "",
 	hiddenEngines: "",
