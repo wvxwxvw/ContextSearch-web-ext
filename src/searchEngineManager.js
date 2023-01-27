@@ -147,7 +147,11 @@ function buildSearchEngineContainer() {
 
 			li.addEventListener('dblclick', e => {
 
-				let edit_form = $('editSearchEngineForm').cloneNode(true);
+				let edit_form = $('editFormTemplate').cloneNode(true);
+
+				let contentForm = $('editSearchEngineForm').cloneNode(true);
+				contentForm.style.display = 'block';
+				edit_form.querySelector('content').appendChild(contentForm);
 
 				edit_form.node = node;
 
@@ -275,7 +279,7 @@ function buildSearchEngineContainer() {
 				edit_form.shortName.value = se.title;
 				edit_form.description.value = se.description || "";
 				edit_form.template.value = se.template;
-				edit_form.iconURL.value = se.icon_url || se.icon_base64String;
+				edit_form.iconURL.value = se.icon || se.iconCache;
 				edit_form._method.value = se.method || "GET";
 				edit_form.post_params.value = (se.method === 'GET') ? "" : nameValueArrayToParamString(se.params);
 				edit_form._encoding.value = se.queryCharset || "UTF-8";
@@ -313,8 +317,10 @@ function buildSearchEngineContainer() {
 				
 				edit_form.copy.onclick = function() {
 					let newNode = addNewEngine(node, true);
-					addNode(newNode, li);
+					let newLi = addNode(newNode, li);
 					updateNodeList(true);
+
+					edit_form.closeForm();
 
 					newLi.dispatchEvent(new MouseEvent('dblclick'));
 				}
@@ -394,11 +400,11 @@ function buildSearchEngineContainer() {
 
 						icon.src = iconBase64 || "icons/search.svg";
 
-						se.icon_base64String = iconBase64;  //icon.src;
+						se.iconCache = iconBase64;  //icon.src;
 						se.description = edit_form.description.value;
 						se.template = edit_form.template.value;
 						se.searchForm = edit_form.searchform.value;
-						se.icon_url = edit_form.iconURL.value;
+						se.icon = edit_form.iconURL.value;
 						se.method = edit_form._method.value;
 						se.queryCharset = edit_form._encoding.value;
 						se.params = paramStringToNameValueArray(edit_form.post_params.value);
@@ -440,7 +446,7 @@ function buildSearchEngineContainer() {
 
 				createFormContainer(edit_form);
 				addIconPickerListener(edit_form.iconPicker, li);
-				addFavIconFinderListener(edit_form.faviconFinder);
+				//addFavIconFinderListener(edit_form.faviconFinder);
 				edit_form.addFaviconBox(getIconFromNode(node));
 				checkFormValues();
 			});
@@ -461,14 +467,12 @@ function buildSearchEngineContainer() {
 			header.appendChild(text);
 			
 			function _edit() {
-			
-				let _form = $('editSearchEngineForm').cloneNode(true);
+
+				let _form = $('editFormTemplate').cloneNode(true);
 				_form.id = null;
 
-				["template", "searchform", "post_params", "searchRegex", "matchRegex", "_method", "_encoding", "copy", "addOpenSearchEngine", "test"].forEach(name => {
-					if ( _form[name].previousSibling && _form[name].previousSibling.nodeName === "LABEL" ) _form[name].parentNode.removeChild(_form[name].previousSibling);
-					_form[name].parentNode.removeChild(_form[name]);
-				})
+				removeFormNames(_form, [ "copy", "searchRegex"]);
+
 				addFormListeners(_form);
 				
 				_form.node = node;
@@ -477,8 +481,6 @@ function buildSearchEngineContainer() {
 				_form.shortName.value = node.title;
 				_form.searchCode.value = node.searchCode || "";
 				_form.description.value = node.description || "";
-
-				_form.querySelector('label[data-i18n="SearchCode"]').innerText = i18n("Script");
 
 				_form.searchCode.style.height = '12em';
 
@@ -561,7 +563,7 @@ function buildSearchEngineContainer() {
 				
 				createFormContainer(_form);
 				addIconPickerListener(_form.iconPicker, li);
-				addFavIconFinderListener(_form.faviconFinder);
+				// addFavIconFinderListener(_form.faviconFinder);
 				_form.addFaviconBox(getIconFromNode(node));
 				
 			}
@@ -587,6 +589,59 @@ function buildSearchEngineContainer() {
 			text.innerText = node.title;
 			text.className = "label";
 			header.appendChild(text);
+
+			li.addEventListener('dblclick', _edit);
+
+			function _edit() {
+			
+				let _form = $('editSearchEngineForm').cloneNode(true);
+				_form.id = null;
+
+				["shortName","description", "template", "searchform", "post_params", "searchRegex", "searchCode", "matchRegex", "_method", "_encoding", "copy", "addOpenSearchEngine", "test"].forEach(name => {
+					if ( _form[name].previousSibling && _form[name].previousSibling.nodeName === "LABEL" ) _form[name].parentNode.removeChild(_form[name].previousSibling);
+					_form[name].parentNode.removeChild(_form[name]);
+				})
+				addFormListeners(_form);
+				
+				_form.node = node;
+								
+				_form.iconURL.value = node.icon || "";
+			//	_form.shortName.value = node.title;
+				setContexts(_form, node.contexts);
+
+				let tool = QMtools.find( _t => _t.name === node.tool );
+
+				console.log(tool);
+				
+				_form.close.onclick = _form.closeForm;
+				
+				_form.save.onclick = async function() {
+
+					node.icon = await getFormIcon(_form);
+					_form.querySelector('[name="faviconBox"] img').src = getIconFromNode(node);
+					img.src = getIconFromNode(node);
+
+				//	node.title = _form.shortName.value.trim();
+					node.contexts = getContexts(_form);
+					setRowContexts(li);
+
+					text.innerText = node.title;
+
+					showSaveMessage("saved", null, _form.querySelector(".saveMessage"));
+					updateNodeList();
+				}
+
+				_form.saveclose.onclick = function() {
+					_form.save.onclick();
+					setTimeout(() => _form.close.onclick(), 500);
+				}
+				
+				createFormContainer(_form);
+				addIconPickerListener(_form.iconPicker, li);
+				// addFavIconFinderListener(_form.faviconFinder);
+				_form.addFaviconBox(getIconFromNode(node));
+
+			}
 		}
 
 		if (node.type === 'externalProgram') {
@@ -606,13 +661,15 @@ function buildSearchEngineContainer() {
 
 				browser.permissions.request({permissions: ['nativeMessaging']});
 			
-				let _form = $('editSearchEngineForm').cloneNode(true);
+				let _form = $('editFormTemplate').cloneNode(true);
 				_form.id = null;
 
-				[ "post_params", "matchRegex", "_method", "_encoding", "copy", "addOpenSearchEngine"].forEach(name => {
-					if ( _form[name].previousSibling && _form[name].previousSibling.nodeName === "LABEL" ) _form[name].parentNode.removeChild(_form[name].previousSibling);
-					_form[name].parentNode.removeChild(_form[name]);
-				});
+				removeFormNames(_form, [ "copy"]);
+
+				let contentForm = $('editExternalProgramForm').cloneNode(true);
+				contentForm.style.display = 'block';
+
+				_form.querySelector('content').appendChild(contentForm);
 
 				addFormListeners(_form);
 				
@@ -620,24 +677,24 @@ function buildSearchEngineContainer() {
 								
 				_form.iconURL.value = node.icon || "";
 				_form.shortName.value = node.title;
-				_form.template.value = node.path;
+				_form.command.value = node.path;
 				_form.searchRegex.value = node.searchRegex;
 				_form.description.value = node.description || "";
-				_form.searchform.value = node.cwd || "";
-				_form.searchCode.value = node.postScript || "";
+				_form.cwd.value = node.cwd || "";
+				_form.postScript.value = node.postScript || "";
 
-				let cmd = _form.querySelector('label[data-i18n="Template"]');
-				cmd.innerText = i18n("Command");
+				// let cmd = _form.querySelector('label[data-i18n="Template"]');
+				// cmd.innerText = i18n("Command");
 
-				let cwd = _form.querySelector('label[data-i18n="FormPath"]');
-				cwd.innerText = i18n("WorkingDirectory");
+				// let cwd = _form.querySelector('label[data-i18n="FormPath"]');
+				// cwd.innerText = i18n("WorkingDirectory");
 
-				let pas = _form.querySelector('label[data-i18n="SearchCode"]');
-				pas.innerText = i18n("PostAppScript");
-				pas.title = i18n("PostAppScriptTooltip");
+				// let pas = _form.querySelector('label[data-i18n="SearchCode"]');
+				// pas.innerText = i18n("PostAppScript");
+				// pas.title = i18n("PostAppScriptTooltip");
 
-				_form.insertBefore(cwd, _form.template.nextSibling);
-				_form.insertBefore(_form.searchform, cwd.nextSibling);
+				// _form.insertBefore(cwd, _form.template.nextSibling);
+				// _form.insertBefore(_form.searchform, cwd.nextSibling);
 
 				(() => {
 					let div = document.createElement('div');
@@ -744,13 +801,13 @@ function buildSearchEngineContainer() {
 				
 				createFormContainer(_form);
 				addIconPickerListener(_form.iconPicker, li);
-				addFavIconFinderListener(_form.faviconFinder);
+				// addFavIconFinderListener(_form.faviconFinder);
 				_form.addFaviconBox(getIconFromNode(node));
 
 			}
 		}
 		
-		if (node.type === 'oneClickSearchEngine') {
+		if ( node.type === 'oneClickSearchEngine' && browser.search && browser.search.get ) {
 
 			let img = document.createElement('img');
 			img.src = getIconFromNode(node);
@@ -771,19 +828,18 @@ function buildSearchEngineContainer() {
 
 			function _edit() {
 			
-				let _form = $('editSearchEngineForm').cloneNode(true);
+				let _form = $('editFormTemplate').cloneNode(true);
 				_form.id = null;
 
-				["shortName","description", "template", "searchform", "post_params", "searchRegex", "searchCode", "matchRegex", "_method", "_encoding", "copy", "addOpenSearchEngine", "test"].forEach(name => {
-					if ( _form[name].previousSibling && _form[name].previousSibling.nodeName === "LABEL" ) _form[name].parentNode.removeChild(_form[name].previousSibling);
-					_form[name].parentNode.removeChild(_form[name]);
-				})
+				removeFormNames(_form, ["description","copy","test", "contexts", "matchRegex"]);
+
 				addFormListeners(_form);
 				
 				_form.node = node;
 								
 				_form.iconURL.value = node.icon || "";
-			//	_form.shortName.value = node.title;
+				_form.shortName.value = node.title;
+				_form.shortName.disabled = true;
 				setContexts(_form, node.contexts);
 				
 				_form.close.onclick = _form.closeForm;
@@ -803,10 +859,15 @@ function buildSearchEngineContainer() {
 					showSaveMessage("saved", null, _form.querySelector(".saveMessage"));
 					updateNodeList();
 				}
+
+				_form.saveclose.onclick = function() {
+					_form.save.onclick();
+					setTimeout(() => _form.close.onclick(), 500);
+				}
 				
 				createFormContainer(_form);
 				addIconPickerListener(_form.iconPicker, li);
-				addFavIconFinderListener(_form.faviconFinder);
+				// addFavIconFinderListener(_form.faviconFinder);
 				_form.addFaviconBox(getIconFromNode(node));
 
 			}
@@ -855,19 +916,14 @@ function buildSearchEngineContainer() {
 				
 				e.stopPropagation();
 				
-				let _form = $('editSearchEngineForm').cloneNode(true);
+				let _form = $('editFormTemplate').cloneNode(true);
 				_form.id = null;
 
-				["description", "template", "searchform", "post_params", "searchRegex", "searchCode", "matchRegex", "_method", "_encoding", "copy", "addOpenSearchEngine", "test"].forEach(name => {
-					if ( _form[name].previousSibling && _form[name].previousSibling.nodeName === "LABEL" ) _form[name].parentNode.removeChild(_form[name].previousSibling);
-					_form[name].parentNode.removeChild(_form[name]);
-				});
+				removeFormNames(_form, ["description", "copy", "test", "matchRegex", "contexts"]);
 
-
-				_form.insertBefore($('folderFormTable').cloneNode(true), _form['save'].parentNode);
-
-				let c = _form.querySelector('.contexts');
-				c.parentNode.removeChild(c);
+				let contentForm = $('folderFormTable').cloneNode(true);
+				contentForm.style.display = 'block';
+				_form.querySelector('content').appendChild(contentForm);
 
 				addFormListeners(_form);
 
@@ -914,7 +970,7 @@ function buildSearchEngineContainer() {
 				
 				createFormContainer(_form);
 				addIconPickerListener(_form.iconPicker, li);
-				addFavIconFinderListener(_form.faviconFinder);
+				// addFavIconFinderListener(_form.faviconFinder);
 				_form.addFaviconBox(getIconFromNode(node));
 
 				_form.c_groupColor.value = _form.groupColor.value;
@@ -1983,7 +2039,7 @@ function buildSearchEngineContainer() {
 			if ( newNode ) {
 				let newLi = addNode(newNode, li);
 
-				newNode.icon_url = browser.runtime.getURL('icons/page_tiles.svg');
+				newNode.icon = browser.runtime.getURL('icons/page_tiles.svg');
 				newNode.template = JSON.stringify(templates);
 				newNode.description = JSON.stringify(names);
 				updateNodeList(true);
@@ -2200,9 +2256,9 @@ function buildSearchEngineContainer() {
 		} else {
 			se = {
 				"searchForm": "", 
-				"icon_url":"",
+				"icon":"",
 				"title":shortName,
-				"icon_base64String": "", 
+				"iconCache": "", 
 				"method": "GET", 
 				"params": "", 
 				"template": "", 
@@ -2387,10 +2443,28 @@ function addFormListeners(form) {
 
 		form.iconPicker.id = form.id + 'IconPicker';
 
-		let forlabel = document.createElement('label');
-		forlabel.setAttribute('for', form.iconPicker.id);
-		forlabel.title = i18n('uploadfromlocal');
-		box.insertBefore(forlabel, box.firstChild);
+		// let forlabel = document.createElement('label');
+		// forlabel.setAttribute('for', form.iconPicker.id);
+		// forlabel.title = i18n('uploadfromlocal');
+		// box.insertBefore(forlabel, box.firstChild);
+
+		box.onclick = async() => { 
+			let modal = $('faviconModal');
+
+			modal.style.zIndex = 10000;
+			openModal(modal);
+
+			modal.querySelector('[name="iconURL"]').value = form.node.icon;
+
+		//	addIconPickerListener(edit_form.iconPicker, li);
+			addFavIconFinderListener(modal.querySelector('[name="faviconFinder"]'));
+
+			await new Promise(r => {
+				modal.querySelector('[name="cancel"]').onclick = r;
+			})
+
+			closeModal(modal);
+		}
 
 		img.onload = () => {
 			let label = document.createElement('div');
@@ -2412,6 +2486,12 @@ function addFormListeners(form) {
 		form.save.classList.remove('changed');
 		form.saveclose.classList.remove('changed');
 	});
+
+	form.querySelector('label[for="filtering"]').addEventListener('click', e => {
+		let block = form.querySelector('[name="filtering"]');
+		block.style.height = !block.style.height ? block.scrollHeight + "px" : null;
+		e.target.style.display = 'none';
+	})
 }
 
 function setContexts(f, c) {
@@ -2495,6 +2575,7 @@ function createFormContainer(form) {
 
 	let formContainer = document.createElement('div');
 	formContainer.id = "floatingEditFormContainer";
+	formContainer.className = "modal";
 
 	overdiv.appendChild(formContainer);
 	formContainer.appendChild(form);
@@ -2525,6 +2606,17 @@ function getFormIcon(form) {
 		setTimeout(() => resolve(form.iconURL.value), 5000);
 
 		newIcon.src = getIconSourceFromURL(form.iconURL.value);
+	});
+}
+
+function removeFormNames(_form, arr) {
+	arr.forEach(name => {
+		let el = _form.querySelector(`[name="${name}"]`);
+
+		if ( !el ) return;
+
+		if ( el.previousSibling && el.previousSibling.nodeName === "LABEL" ) el.parentNode.removeChild(el.previousSibling);
+		el.parentNode.removeChild(el);
 	});
 }
 
