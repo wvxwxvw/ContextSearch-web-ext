@@ -38,6 +38,13 @@ function filterContexts(root, context) {
 			return removeNode(node, parent);
 		}
 
+		// remove consecutive separators
+		// if ( node.type === 'separator' ) {
+		// 	let index = parent.children.indexOf(node);
+		// 	if ( parent.children[index - 1] && parent.children[index-1].type === 'separator')
+		// 		return removeNode(node, parent);
+		// }
+
 		if ( node.type === 'folder' && node.children.length === 0 )
 			if ( parent ) return removeNode( node, parent );
 
