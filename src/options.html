@@ -1255,11 +1255,11 @@
 				border-color:var(--selected);
 			}
 			.faviconPickerBox.upload:hover {
-				background:#555 url(icons/upload.svg) no-repeat center;
-				background-size: 50%;
+				background:#555 url(icons/pencil.svg) no-repeat top right;
+				background-size: 35%;
 			}
 			.faviconPickerBox.upload:hover IMG {
-				opacity:0;
+				opacity:.25;
 			}
 			.faviconPickerBox.upload:hover DIV {
 				opacity:0;
@@ -1719,12 +1719,6 @@
 							<button id="syncToCloud">⟳</button>
 						</td>
 					</tr> -->
-					<tr>
-						<td >restoreBackup</td>
-						<td>
-							<button id="restoreBackup">⟳</button>
-						</td>
-					</tr>
 					<tr>
 						<td data-i18n="ResetDefaults" title="$resetUserOptionsTooltip">$</td>
 						<td>
@@ -3351,9 +3345,9 @@
 
 					<hr>
 
-					<label for="filtering" style="margin-bottom:20px;marin-left:0">Advanced</label>
+				<!-- 	<label for="filtering" style="margin-bottom:20px;marin-left:0">Advanced</label>
 
-					<div name="filtering">
+					<div name="filtering"> -->
 
 						<label data-i18n="Regex" title="$RegexTooltip">$</label><textarea name="searchRegex" type="text" class="inputNice" placeholder='e.g. /\s/_/g or "\\s","_"'></textarea>
 						<label data-i18n="Script" title="$SearchCodeTooltip">$</label><textarea name="searchCode" type="text" class="inputNice"></textarea>
@@ -3362,7 +3356,7 @@
 
 					
 						<div name="contexts">
-							<label data-i18n="ContextFiltering" title="$contextsTooltip" for="contexts" style="margin-left:20px">$</label>
+							<label data-i18n="ContextFiltering" title="$contextsTooltip" for="contexts" style="" class="formLabel">$</label>
 							<div class="contexts" style="margin-bottom:8px">
 								<label><input type="checkbox" class="inputNice" value="1"/><span data-i18n="audio">$</span></label>
 								<label><input type="checkbox" class="inputNice" value="2"/><span data-i18n="frame">$</span></label>
@@ -3375,7 +3369,7 @@
 							</div>
 						</div>
 						<label data-i18n="RegexFiltering" title="$MatchSearchTermsRegexTooltip">$</label><textarea name="matchRegex" type="text" class="inputNice" placeholder='e.g. /\d+/g'></textarea>
-					</div>
+					<!-- </div> -->
 
 					<div style="display:none">
 						<input name="iconURL" type="text" class="inputNice" style="display:inline-block;width:calc(100% - 65px)"/>
@@ -3431,7 +3425,7 @@
 					<hr>
 				</div>
 				<div id="editExternalProgramForm" class="editForm">
-					<label data-i18n="Command">$</label><textarea name="command" type="text" class="inputNice" ></textarea>
+					<label data-i18n="Command">$</label><textarea name="path" type="text" class="inputNice" ></textarea>
 					<label data-i18n="WorkingDirectory">$</label><textarea name="cwd" type="text" class="inputNice" ></textarea>
 					<label data-i18n="Script">$</label><textarea name="postScript" type="text" class="inputNice" ></textarea>
 				</div>
