@@ -431,8 +431,6 @@ function buildSearchEngineContainer() {
 				}
 
 				createFormContainer(_form);
-				addIconPickerListener(_form.iconPicker, li);
-				//addFavIconFinderListener(_form.faviconFinder);
 				_form.addFaviconBox(getIconFromNode(node));
 				checkFormValues();
 			});
@@ -553,8 +551,6 @@ function buildSearchEngineContainer() {
 				}
 				
 				createFormContainer(_form);
-				addIconPickerListener(_form.iconPicker, li);
-				// addFavIconFinderListener(_form.faviconFinder);
 				_form.addFaviconBox(getIconFromNode(node));
 				
 			}
@@ -632,8 +628,6 @@ function buildSearchEngineContainer() {
 				}
 				
 				createFormContainer(_form);
-				addIconPickerListener(_form.iconPicker, li);
-				// addFavIconFinderListener(_form.faviconFinder);
 				_form.addFaviconBox(getIconFromNode(node));
 
 			}
@@ -786,8 +780,6 @@ function buildSearchEngineContainer() {
 				}
 				
 				createFormContainer(_form);
-				addIconPickerListener(_form.iconPicker, li);
-				// addFavIconFinderListener(_form.faviconFinder);
 				_form.addFaviconBox(getIconFromNode(node));
 
 			}
@@ -861,8 +853,6 @@ function buildSearchEngineContainer() {
 				}
 				
 				createFormContainer(_form);
-				addIconPickerListener(_form.iconPicker, li);
-				// addFavIconFinderListener(_form.faviconFinder);
 				_form.addFaviconBox(getIconFromNode(node));
 
 			}
@@ -965,8 +955,6 @@ function buildSearchEngineContainer() {
 				_form.iconURL.value 			= node.icon || "";
 				
 				createFormContainer(_form);
-				addIconPickerListener(_form.iconPicker, li);
-				// addFavIconFinderListener(_form.faviconFinder);
 				_form.addFaviconBox(getIconFromNode(node));
 
 				_form.c_groupColor.value = _form.groupColor.value;
@@ -2291,8 +2279,6 @@ function buildSearchEngineContainer() {
 			formContainer.parentNode.style.opacity = 0;
 			$('#main').classList.remove('blur');
 			runAtTransitionEnd(formContainer, "opacity", () => {
-			//	form.style.display = null;
-			//	document.body.appendChild(form);
 				document.body.removeChild(formContainer.parentNode);
 			});
 		}
@@ -2325,7 +2311,7 @@ function buildSearchEngineContainer() {
 				let newLi = addNode(newNode, form.li);
 
 				if ( !newLi ) return;
-				
+
 				updateNodeList(true);
 
 				form.closeForm();
@@ -2345,28 +2331,7 @@ function buildSearchEngineContainer() {
 
 			form.iconPicker.id = form.id + 'IconPicker';
 
-			// let forlabel = document.createElement('label');
-			// forlabel.setAttribute('for', form.iconPicker.id);
-			// forlabel.title = i18n('uploadfromlocal');
-			// box.insertBefore(forlabel, box.firstChild);
-
-			box.onclick = async() => { 
-				let modal = $('faviconModal');
-
-				modal.style.zIndex = 10000;
-				openModal(modal);
-
-				modal.querySelector('[name="iconURL"]').value = form.node.icon;
-
-			//	addIconPickerListener(edit_form.iconPicker, li);
-				addFavIconFinderListener(modal.querySelector('[name="faviconFinder"]'));
-
-				await new Promise(r => {
-					modal.querySelector('[name="cancel"]').onclick = r;
-				})
-
-				closeModal(modal);
-			}
+			addFavIconFinderListener(box);
 
 			img.onload = () => {
 				let label = document.createElement('div');
@@ -2378,7 +2343,7 @@ function buildSearchEngineContainer() {
 		// update the favicon when the user changes the url
 		form.iconURL.addEventListener('change', e => {
 
-			let defaultIcon = getIconFromNode({type:form.node.type});
+			let defaultIcon = getIconFromNode(form.node);
 
 			let img = form.querySelector('[name="faviconBox"] img');
 			img.src = form.iconURL.value || defaultIcon;
@@ -2429,17 +2394,6 @@ function buildSearchEngineContainer() {
 		await _saveOptions();
 		location.reload();
 	});
-
-	function addIconPickerListener(el, li) {
-		imageUploadHandler(el, img => {
-			let form = el.closest('form');;
-			form.iconURL.value = imageToBase64(img, userOptions.cacheIconsMaxSize);
-		//	li.querySelector("img").src = form.iconURL.value;
-
-			form.querySelector('[name="faviconBox"] img').src = form.iconURL.value;
-		//	form.save.click();
-		})
-	}
 
 	let main_ec = $('#collapseAll');
 	main_ec.onclick = function() {

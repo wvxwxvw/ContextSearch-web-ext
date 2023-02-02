@@ -1229,7 +1229,8 @@
 			.faviconPickerBox:hover {
 				background-color:var(--hover1);
 			}
-			.faviconPickerBox IMG {
+			.faviconPickerBox IMG,
+			.faviconPickerBox .tool {
 				max-height:48px;
 				max-width:48px;
 				vertical-align:middle;
@@ -1600,6 +1601,29 @@
 				height: 0px;
 				overflow: hidden;
 				transition: height .25s;
+			}
+
+			#faviconModal {
+				min-width: 400px;
+			}
+
+			#faviconModal HR {
+				margin: 25px;
+				border-width: 8px;
+			}
+			#faviconModal .orLine {
+				width:40px;
+				height:8px;
+				background-color:var(--border-color1);
+				display: inline-block;
+				margin: 20px;
+				vertical-align: middle;
+			}
+
+			#faviconModal [name="iconURL"] {
+				width:calc(100% - 40px);
+				text-align: center;
+				padding: 8px 16px;
 			}
 
 		</style>
@@ -3594,12 +3618,31 @@
 		</div>
 
 		<div id="faviconModal" class="modal hide" style="width:auto;">
-			<div data-i18n="IconURI" style="font-size:14pt;margin-bottom:20px">$</div>
-			<input name="iconURL" type="text" class="inputNice" style="display:inline-block;width:calc(100% - 65px)"/>
-			<button type="button" name="faviconFinder" title="i18n_text" data-i18n="faviconFinder" style="padding:4px 5px;position: relative;top:-3px;cursor:pointer"><tool data-icon="search.svg" style="width:20px;vertical-align:middle;margin:0 4px;"></tool></button>
-			<input type="file" accept="image/*" name='iconPicker' style="display:none">
+			<div name="close" style="position: absolute;top:4px;right:4px;cursor:pointer">
+				<tool data-icon="crossmark.svg"></tool>
+			</div>
 
-			<button data-i18n="Cancel" name="cancel">$</button><br>
+			<!-- <div data-i18n="IconURI" style="font-size:14pt;margin-bottom:20px">$</div> -->
+
+			<div class="faviconModal_icons" style="max-height:400px;overflow-y:scroll;margin-top:20px"></div>
+
+			<div>
+				<span class="orLine"></span>
+				or
+				<span class="orLine"></span>
+			</div>
+
+			<div>
+				<label title="$uploadfromlocal" style="font-size:20px;font-weight:bold" data-i18n="ChooseImage" for="iconPicker"><tool data-icon="image.svg" style="width: 30px;height:30px;vertical-align:middle;margin-right: 16px;"></tool>$</label>
+				<input type="file" accept="image/*" name='iconPicker' style="display:none">
+			</div>
+
+			<hr>
+			<div style="text-align: center;">
+				<input name="iconURL" type="text" class="inputNice" />
+			</div>
+
+			<!-- <button data-i18n="Cancel" name="cancel">$</button><br> -->
 		</div>
 
 		<img id="nightmode" src="icons/brightness.svg" style="position:fixed;top:4px;right:4px;height:24px;z-index:10000;" title="$toggletheme">

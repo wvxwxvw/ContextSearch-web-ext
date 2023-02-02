@@ -2588,5 +2588,8 @@
   },
   "RegexFiltering": {
     "message": "Regex Filtering"
+  },
+  "ChooseImage": {
+    "message": "Choose Image"
   }
 }

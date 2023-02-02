@@ -106,7 +106,7 @@ function cacheIcons() {
 
 async function findFavicons(url) {
 	let tab;
-	let hrefs = [];
+	let hrefs = ['https://www.google.com/s2/favicons?domain=${url}&sz=${userOptions.cacheIconsMaxSize}'];
 	try {
 
 		let promise1 = new Promise(resolve => {
@@ -153,34 +153,56 @@ async function findFavicons(url) {
 
 // options.html
 function addFavIconFinderListener(finder) {
+
+
 	finder.onclick = async function(e) {
 
-		let overdiv = document.createElement('div');
-		overdiv.className = 'overDiv';
-		document.body.appendChild(overdiv);
-
-		let div = document.createElement('div');
-		div.id = "faviconPickerContainer";
-		div.className = "modal";
-		overdiv.style.opacity = 0;
-		overdiv.appendChild(div);
-
-		overdiv.offsetWidth;
-		overdiv.style.opacity = 1;
-
-		let spinner = new Image();
-		spinner.src = 'icons/spinner.svg';
-		spinner.style = 'height:32px;width:32px;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);';
-		div.appendChild(spinner);
-
 		let form = $('#floatingEditFormContainer > FORM');
-		form.parentNode.classList.add('blur');
+
+		let modal = $('faviconModal');
+
+		close = () => {
+			closeModal(modal);
+			$('.overDiv').classList.remove('blur');
+		}
+
+		modal.style.zIndex = 10000;
+		openModal(modal);
+
+		$('.overDiv').classList.add('blur');
+
+		modal.querySelector('[name="iconURL"]').value = form.node.icon;
+		modal.querySelector('[name="close"]').onclick = () => close();
+
+		modal.querySelector('[name="iconURL"]').addEventListener('change', e => {
+			form.iconURL.value = modal.querySelector('[name="iconURL"]').value;
+			form.querySelector('[name="faviconBox"] img').src = form.iconURL.value;
+			modal.querySelector('.current IMG').src = form.iconURL.value;
+			form.iconURL.dispatchEvent(new Event('change'));
+			form.save.click();
+		})
+
+		makeFaviconPickerBoxes(['icons/spinner.svg']);
+		let spinner = modal.querySelector('.faviconPickerBox');
+		spinner.onclick = null;
+
+		let forlabel = modal.querySelector('label');
+		forlabel.setAttribute('for', form.iconPicker.id);
+
+		imageUploadHandler(form.iconPicker, img => {
+			let data = imageToBase64(img, userOptions.cacheIconsMaxSize);
+			form.iconURL.value = modal.querySelector('[name="iconURL"]').value = data;
+			form.querySelector('[name="faviconBox"] img').src = form.iconURL.value;
+			form.iconURL.dispatchEvent(new Event('change'));
+			form.save.click();
+			close();
+		})
 
 		let url;
-		let urls = [];
+		let urls = [form.iconURL.value || getIconFromNode(form.node)];
 		try {
 			url = new URL(form.searchform.value || form.template.value);
-			urls = await findFavicons(url.origin);
+			urls = urls.concat(await findFavicons(url.origin));
 
 			// include the current icon URI in the picker
 			if ( form.iconURL.value && !urls.includes(form.iconURL.value))
@@ -204,7 +226,7 @@ function addFavIconFinderListener(finder) {
 			let colors = palette.split('-');
 
 			let randomColors = [];
-			for ( let i=0;i<10;i++) {
+			for ( let i=0;i<7;i++) {
 				randomColors.push(colors.splice([Math.floor(Math.random()*colors.length)],1));
 			}
 
@@ -221,13 +243,17 @@ function addFavIconFinderListener(finder) {
 
 		spinner.parentNode.removeChild(spinner);
 
-		function makeFaviconPickerBoxes(urls) {
+		function makeFaviconPickerBoxes(urls, keep) {
 
 			// clear old icons
-			div.querySelectorAll('.faviconPickerBox').forEach( f => f.parentNode.removeChild(f));
+			if ( !keep )
+				modal.querySelectorAll('.faviconPickerBox').forEach( f => f.parentNode.removeChild(f));
 
 			urls = [...new Set(urls)];
+
 			urls.forEach( _url => {
+
+				let errors = 0;
 
 				let box = document.createElement('div');
 				box.className = "faviconPickerBox";
@@ -248,15 +274,21 @@ function addFavIconFinderListener(finder) {
 				}
 
 				img.onerror = function() {
+					// skip current box
+					if ( img.closest('.current')) return;
+
 					box.parentNode.removeChild(box);
-					if ( !div.querySelector('.faviconPickerBox') )
+
+					if ( errors++ == urls.length ) {
 						makeFaviconPickerBoxes(getCustomIconUrls());
+						showMoreButton();
+					}
 				}
 
 				img.src = _url;
 
 				box.appendChild(img);
-				div.appendChild(box);
+				modal.querySelector(".faviconModal_icons").appendChild(box);
 
 				box.onclick = function() {
 				
@@ -267,33 +299,29 @@ function addFavIconFinderListener(finder) {
 					// update the favicon when the user picks an icon
 					form.iconURL.dispatchEvent(new Event('change'));
 					form.save.click();
+					close();
 				}
 			});
 		}
 
-		const close = e => {
-			overdiv.style.opacity = 0;
-			form.parentNode.classList.remove('blur');
-			runAtTransitionEnd(overdiv, "opacity", () => {
-				overdiv.innerHTML = null;
-				overdiv.parentNode.removeChild(overdiv);
-			});
-		}
-
-		overdiv.onclick = close;
-
 		if ( !urls.length ) urls = getCustomIconUrls();
 
 		function showMoreButton() {
-			let more = document.createElement('div');
-			more.innerText = i18n('searchIconFinder');
-			more.style = "position:absolute;bottom:0;right:10px;cursor:pointer;user-select:none"
-			div.appendChild(more);
 
-			more.addEventListener('click', async e => {
-				more.style.display = 'none';
+			let box = document.createElement('div');
+			box.className = "faviconPickerBox";
+			box.title = i18n('more');
+			let tool = createMaskIcon('icons/more.svg');
+			box.insertBefore(tool, box.firstChild);
+			modal.querySelector(".faviconModal_icons").appendChild(box);
+
+			box.addEventListener('click', async e => {
 				e.stopPropagation();
-				makeFaviconPickerBoxes([browser.runtime.getURL('icons/spinner.svg')]);
+				box.onclick = null;
+				tool.parentNode.removeChild(tool);
+				let img = new Image();
+				img.src = 'icons/spinner.svg';
+				box.appendChild(img);
 
 				let searchTerms = ( form.shortName ) ? form.shortName.value.trim() : form.node.title;
 
@@ -303,14 +331,16 @@ function addFavIconFinderListener(finder) {
 					searchTerms = window.prompt(i18n("RefineSearch"), searchTerms);
 
 					if ( !searchTerms ) { // prompt is cancelled, use generated
-						makeFaviconPickerBoxes(getCustomIconUrls());
+						makeFaviconPickerBoxes(getCustomIconUrls(), true);
 						break;
 					}
 
 					iconUrls = await browser.runtime.sendMessage({action:"getIconsFromIconFinder", searchTerms:searchTerms});
 				}	
 
-				makeFaviconPickerBoxes(iconUrls);			
+				makeFaviconPickerBoxes(iconUrls, true);
+
+				box.style.display = 'none';		
 			});
 		}
 
