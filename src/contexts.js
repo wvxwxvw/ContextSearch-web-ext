@@ -1,6 +1,11 @@
 const contexts = ["audio", "frame", "image", "link", "page", "selection", "video"]; // [1,2,4,8,16,32,64];
 
 function getContextCode(t) {
+
+	// fix unknown types
+	if ( t === "linkText")
+		t = "selection";
+
 	let i = contexts.indexOf(t);
 
 	if ( i == -1 ) {
