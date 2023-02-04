@@ -800,7 +800,7 @@ async function makeQuickMenu(options) {
 	// options override
 	root.displayType = options.displayType || root.displayType;
 
-	let lastFolderId = await browser.runtime.sendMessage({action: "getLastOpenedFolder"});
+	let lastFolderId = options.node ? options.node.id : await browser.runtime.sendMessage({action: "getLastOpenedFolder"});
 	
 	if ( userOptions.rememberLastOpenedFolder && lastFolderId ) {
 
