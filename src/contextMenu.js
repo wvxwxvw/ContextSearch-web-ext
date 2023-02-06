@@ -248,7 +248,7 @@ async function buildContextMenu(searchTerms) {
 	let count = 0;
 
 	let buildContextually = async () => {
-			
+
 		if ( userOptions.syncWithFirefoxSearch ) {
 			let ses = firefoxSearchEngines;
 			

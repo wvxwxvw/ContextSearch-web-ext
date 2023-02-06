@@ -378,8 +378,6 @@ async function notify(message, sender, sendResponse) {
 						ccs.push("selection");
 				}
 
-				updateMatchRegexFolders(searchTerms);
-
 				// relabel selection based on linkMethod
 				test: try {
 
@@ -389,12 +387,12 @@ async function notify(message, sender, sendResponse) {
 
 					// using linkText
 					if ( message.linkMethod && message.linkMethod === "text" ) {
-						await browser.contextMenus.update("selection", {
+						browser.contextMenus.update("selection", {
 							title: title,
 							contexts:["link", "selection"]
 						});
 					} else {
-						await browser.contextMenus.update("selection", {
+						browser.contextMenus.update("selection", {
 							title: i18n("SearchForContext", i18n("selection").toUpperCase()) + getMenuHotkey(),
 							contexts:["selection"]
 						});
@@ -404,17 +402,15 @@ async function notify(message, sender, sendResponse) {
 				}
 
 				try {
-					for ( let i in contexts )
-						await browser.contextMenus.update(contexts[i], {visible: true });
-
 					contexts.forEach(c => {
-						if ( !ccs.includes(c) )
-							browser.contextMenus.update(c, {visible: false });
-					})
+						browser.contextMenus.update(c, {visible: ccs.includes(c) });
+					});
 
 				} catch ( error ) {
 					console.error(error);
 				}
+
+				updateMatchRegexFolders(searchTerms);
 
 			} else {
 				// legacy menus
