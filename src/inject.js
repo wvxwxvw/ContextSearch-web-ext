@@ -239,10 +239,12 @@ document.addEventListener("selectionchange", e => {
 
 		let searchTerms = window.getSelection().toString().trim();
 
+		// causing errant menu updates
+		if (quickMenuObject.searchTerms === searchTerms) return;
+
 		// if an opener method timer is running, skip
 		if ( quickMenuObject.mouseDownTimer && !searchTerms ) return;
 
-	//	quickMenuObject.lastSelectTime = Date.now();
 		if ( searchTerms ) quickMenuObject.lastSelectText = searchTerms;
 
 		quickMenuObject.searchTerms = searchTerms;
@@ -277,6 +279,8 @@ for (let el of document.querySelectorAll("input, textarea, [contenteditable='tru
 window.addEventListener('mousedown', async e => {
 
 	if ( e.button !== 2 ) return false;
+
+	if ( e.target.closest("contextsearch-widgets") ) return false;
 
 	let searchTerms = getSelectedText(e.target) || linkOrImage(e.target, e) || "";
 

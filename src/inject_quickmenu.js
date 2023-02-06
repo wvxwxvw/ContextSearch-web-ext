@@ -38,6 +38,11 @@ function openQuickMenu(e, searchTerms) {
 
 	let target = e.target;
 
+	// if ( target.closest("contextsearch-widgets") ) {
+	// 	console.warn('target is widget');
+	// 	return;
+	// }
+
 	// open on icon causes inputs to blur, workaround
 	if ( target == document )
 		target = document.body;
@@ -133,6 +138,9 @@ function closeQuickMenu(eventType) {
 	
 	var qmc = getQM();
 
+	// prevent addUnderDiv() and other onload events
+	qmc.onload = null;
+
 	if (qmc) {
 		qmc.style.opacity = 0;
 		document.dispatchEvent(new CustomEvent('closequickmenu'));
@@ -208,6 +216,7 @@ function makeQuickMenuContainer(o) {
 		id: "CS_quickMenuIframe",
 		onload: function() {
 			this.contentWindow.postMessage(Object.assign({action: "openMenu", windowSize: {width: window.innerWidth, height:window.innerHeight}}, o), this.src);
+			addUnderDiv();
 		},
 		src: browser.runtime.getURL('quickmenu.html')
 	})
@@ -220,8 +229,6 @@ function makeQuickMenuContainer(o) {
 			removeUnderDiv();
 		}
 	}, 1000);
-
-	addUnderDiv();
 }
 
 function makeQuickMenuElementContainer(o) {
