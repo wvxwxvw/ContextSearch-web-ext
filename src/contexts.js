@@ -40,15 +40,8 @@ function filterContexts(root, context) {
 		}
 
 		if ( node.contexts && node.type !== 'tool' && !hasContext(context, node.contexts)) {
-			return removeNode(node, parent);
+			return removeNode( node, parent );
 		}
-
-		// remove consecutive separators
-		// if ( node.type === 'separator' ) {
-		// 	let index = parent.children.indexOf(node);
-		// 	if ( parent.children[index - 1] && parent.children[index-1].type === 'separator')
-		// 		return removeNode(node, parent);
-		// }
 
 		if ( node.type === 'folder' && node.children.length === 0 )
 			if ( parent ) return removeNode( node, parent );
@@ -57,6 +50,15 @@ function filterContexts(root, context) {
 		if ( node.type === 'folder' && node.children.length === node.children.filter(n => n.type === "separator").length )
 			if ( parent ) return removeNode( node, parent );
 
+	});
+
+	// remove consecutive separators
+	traverseNodesDeep(filteredNodeTree, (n,p) => {
+		if ( !p ) return;
+
+		let index = p.children.indexOf(n);
+		if ( n.type === 'separator' && index && p.children[index - 1].type === 'separator' )
+			removeNode(n, p);
 	});
 
 	return filteredNodeTree;
