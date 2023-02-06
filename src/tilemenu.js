@@ -1422,7 +1422,7 @@ function makeSearchBar() {
 		div.innerText = keys.length;
 		div.title = keys.map( k => i18n(k)).join(", ");
 
-		div.onclick = function() {
+		div.onclick = async function() {
 
 			if ( !div.searchTermsContext ) {
 				for ( key in sto ) {
@@ -1437,7 +1437,11 @@ function makeSearchBar() {
 			div.searchTermsContext = newKey;
 			sb.set(sto[newKey]);
 
-			browser.runtime.sendMessage({action: "updateSearchTerms", searchTerms: sb.value});
+			quickMenuObject.contexts = [newKey === "linkText" ? "selection" : newKey];
+			//await browser.runtime.sendMessage({action: "updateSearchTerms", searchTerms: sb.value, currentContexts: quickMenuObject.contexts[0]});
+			
+			qm = await quickMenuElementFromNodeTree( window.root );
+			resizeMenu({openFolder:true});
 		}
 
 	})();
