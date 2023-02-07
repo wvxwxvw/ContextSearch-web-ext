@@ -1278,29 +1278,30 @@ async function executeExternalProgram(info) {
 	}
 
 	if ( downloadPath === "ASK") {
+
+		if ( !await awaitPermission("downloads") ) return;
+
+		// if ( downloadURL.startsWith('data') ) {
+		// 	let blob = new Blob(downloadURL);
+		// 	downloadURL = URL.createObjectURL(blob);
+		// }
+
 		let id = await browser.downloads.download({
 			url:downloadURL,
 			saveAs:true
-		})
+		});
 
 		let dl = await browser.downloads.search({id}).then( dls => {
 			return dls[0];
 		});
 
 		debug(dl);
+
+		downloadURL = null;
+		path = path.replace(/{download_url=ASK}/, dl.filename);
 	}
 
-	if ( ! await browser.permissions.contains({permissions: ["nativeMessaging"]}) ) {
-		let tabs = await browser.tabs.query({active:true});
-		let tab = tabs[0];
-		let optionsTab = await notify({action: "openOptions", hashurl:"?permission=nativeMessaging#requestPermissions"});
-		browser.tabs.onRemoved.addListener( function handleRemoved(tabId, removeInfo) {
-			browser.tabs.onRemoved.removeListener(handleRemoved);
-			setTimeout(() => browser.tabs.update(tab.id, {active: true}), 50);
-		});
-	}
-
-	if ( ! await browser.permissions.contains({permissions: ["nativeMessaging"]}) ) return;
+	if ( !await awaitPermission("nativeMessaging") ) return;
 
 	try {
 		await browser.runtime.sendNativeMessage("contextsearch_webext", {verify: true});
@@ -1313,7 +1314,8 @@ async function executeExternalProgram(info) {
 		cwd:node.cwd, 
 		return_stdout: ( node.postScript ? true : false ), 
 		downloadURL: downloadURL, 
-		downloadFolder: downloadPath || userOptions.nativeAppDownloadFolder || null 
+		downloadFolder: downloadPath || userOptions.nativeAppDownloadFolder || null,
+
 	};
 
 	debug("native app message ->", msg);
@@ -2724,4 +2726,26 @@ function exportUserOptions(uo) {
 	let filename = `ContextSearchOptions_${date}.json`;
 
 	return exportJSONObject(uo, filename);
+}
+
+async function awaitPermission(permission) {
+	if ( ! await browser.permissions.contains({permissions: [permission]}) ) {
+		let tabs = await browser.tabs.query({active:true});
+		let tab = tabs[0];
+		let optionsTab = await notify({action: "openOptions", hashurl:`?permission=${permission}#requestPermissions`});
+		browser.tabs.onRemoved.addListener( function handleRemoved(tabId, removeInfo) {
+			browser.tabs.onRemoved.removeListener(handleRemoved);
+			setTimeout(() => browser.tabs.update(tab.id, {active: true}), 50);
+
+		});
+	}
+
+	return Promise.race([
+		new Promise(r => {
+			setInterval(async() => {
+				if ( await browser.permissions.contains({permissions: [permission]}) ) r(true);
+			}, 500)
+		}),
+		new Promise(r => setTimeout(() => r(false), 30000))
+	]);
 }
