@@ -1031,7 +1031,11 @@ async function _quickMenuElementFromNodeTree( o ) {
 	qm.contextualLayout = false;
 
 	// filter node tree for matching contexts
-	if ( userOptions.quickMenuUseContextualLayout && qm.contexts && qm.contexts.length ) {		
+	if ( userOptions.quickMenuUseContextualLayout && qm.contexts && qm.contexts.length ) {
+
+		// prevents default ( non-CTRL ) opening from displaying both link & selection
+		if ( qm.contexts.includes("link") && qm.contexts.includes("linkText") )
+			qm.contexts = qm.contexts.filter(c => c !== "linkText");
 
 		let tempRoot = filterContexts(rootNode, qm.contexts);
 
