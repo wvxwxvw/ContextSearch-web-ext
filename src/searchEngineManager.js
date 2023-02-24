@@ -2015,8 +2015,23 @@ function buildSearchEngineContainer() {
 
 			e.stopImmediatePropagation();
 
-			let templates = selectedRows.filter(r => !['siteSearchFolder', 'separator'].includes(r.node.type)).map( r => r.node.id);
-			let names = selectedRows.map( r => r.node.title);
+			let selectedNodes = selectedRows.filter(r => !['siteSearchFolder', 'separator'].includes(r.node.type)).map( r => r.node);
+
+			let templates = selectedNodes.map( n => n.id);
+
+			for ( let i=templates.length-1;i>-1;i--) {
+
+				let n = findNode(userOptions.nodeTree, _n => _n.id === templates[i]);
+
+				if ( !n ) return;
+
+				try {
+					let ts = JSON.parse(n.template);
+					templates.splice(i,1,...ts);
+				} catch (error) {}
+			}
+
+			let names = selectedNodes.map( n => n.title);
 
 			let newNode = addNewEngine(li.node, false);
 
