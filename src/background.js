@@ -946,6 +946,20 @@ async function notify(message, sender, sendResponse) {
 
 		case "getSessionBackup":
 			return userOptionsBackup;
+
+		case "disablePageClicks":
+			return browser.tabs.insertCSS( sender.tab.id, {
+				code:"BODY{pointer-events:none;}",
+				cssOrigin: "user",
+				allFrames:true
+			});
+
+		case "enablePageClicks":
+			return browser.tabs.removeCSS( sender.tab.id, {
+				code:"BODY{pointer-events:none;}",
+				cssOrigin: "user",
+				allFrames:true
+			});
 	}
 }
 
