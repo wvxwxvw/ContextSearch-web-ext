@@ -316,5 +316,6 @@ const defaultUserOptions = {
 	quickMenuDisabledInNewTabs: false,
 	developerMode: false,
 	advancedImport: false,
-	dockingMoveFixedElements: false
+	dockingMoveFixedElements: false,
+	quickMenuPreventLinksOnMiddleButton: false
 };
