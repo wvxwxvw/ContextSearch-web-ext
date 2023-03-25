@@ -441,6 +441,14 @@ function getLinkMethod(e) {
 	else return method;
 }
 
+function getLinkURL(el) {
+	if ( !el.closest ) return false;
+
+	let a = el.closest('a');
+	
+	return a ? a.href : "";
+}
+
 function getLink(el, e) {
 
 	if ( !el.closest ) return false;

@@ -52,7 +52,7 @@ function openQuickMenu(e, searchTerms) {
 	let searchTermsObject = {
 		selection: selection,
 		image: getImage(target),
-		link: getLink(target),
+		link: getLinkURL(target),
 		linkText: getLinkText(target),
 		page: window.location.href,
 		frame: target.ownerDocument.defaultView != top ? target.ownerDocument.defaultView.location.href : null
