@@ -317,5 +317,6 @@ const defaultUserOptions = {
 	developerMode: false,
 	advancedImport: false,
 	dockingMoveFixedElements: false,
-	quickMenuPreventLinksOnMiddleButton: false
+	quickMenuPreventLinksOnMiddleButton: false,
+	toolBarMenuDisablePageClicks:false
 };
