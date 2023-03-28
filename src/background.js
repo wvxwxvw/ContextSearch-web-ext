@@ -113,10 +113,6 @@ browser.tabs.onZoomChange.addListener( async zoomChangeInfo => {
 
 async function notify(message, sender, sendResponse) {
 
-	try {
-		debug(sender.tab.id, sender.tab.url, message.action);
-	} catch (error) {}
-
 	function sendMessageToTopFrame() {
 		return browser.tabs.sendMessage(sender.tab.id, message, {frameId: 0});
 	}
@@ -132,6 +128,10 @@ async function notify(message, sender, sendResponse) {
 		
 		await browser.tabs.query({currentWindow: true, active: true}).then(onFound, onError);
 	}
+
+	try {
+		debug(sender.tab.id, sender.tab.url, message.action);
+	} catch (error) {}
 
 	if ( message.sendMessageToTopFrame ) {
 		return sendMessageToTopFrame();
@@ -950,18 +950,25 @@ async function notify(message, sender, sendResponse) {
 		case "disablePageClicks":
 			if ( !userOptions.toolBarMenuDisablePageClicks ) return;
 			return browser.tabs.insertCSS( sender.tab.id, {
-				code:"BODY{pointer-events:none;}",
+				code:"HTML{pointer-events:none;}",
 				cssOrigin: "user",
 				allFrames:true
 			});
 
 		case "enablePageClicks":
 			if ( !userOptions.toolBarMenuDisablePageClicks ) return;
-			return browser.tabs.removeCSS( sender.tab.id, {
-				code:"BODY{pointer-events:none;}",
-				cssOrigin: "user",
-				allFrames:true
-			});
+
+			function logTabs(tabs) {
+			  for (const tab of tabs) {
+				    browser.tabs.removeCSS( tab.id, {
+					code:"HTML{pointer-events:none;}",
+					cssOrigin: "user",
+					allFrames:true
+				});
+			  }
+			}
+
+			return browser.tabs.query({ currentWindow: true }).then(logTabs);
 	}
 }
 
