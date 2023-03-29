@@ -60,7 +60,7 @@ browser.tabs.onRemoved.addListener(tabId => removeTabTerms(tabId));
 browser.tabs.onActivated.addListener(info => deactivateTabTerms(info.tabId));
 browser.tabs.onActivated.addListener(info => {
 	if ( userOptions.quickMenuCloseOnTabChange ) {
-		browser.tabs.sendMessage(info.previousTabId, {action: "cancelQuickMenuRequest"}, {allFrames:true}).then(() => {}, () => {});
+		browser.tabs.sendMessage(info.previousTabId, {action: "cancelQuickMenuRequest"}).then(() => {}, () => {});
 		browser.tabs.sendMessage(info.previousTabId, {action: "closeQuickMenuRequest"}).then(() => {}, () => {});
 	}
 })
@@ -960,7 +960,7 @@ async function notify(message, sender, sendResponse) {
 
 			function logTabs(tabs) {
 			  for (const tab of tabs) {
-				    browser.tabs.removeCSS( tab.id, {
+				browser.tabs.removeCSS( tab.id, {
 					code:"HTML{pointer-events:none;}",
 					cssOrigin: "user",
 					allFrames:true
