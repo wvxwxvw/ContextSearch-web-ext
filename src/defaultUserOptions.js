@@ -318,5 +318,6 @@ const defaultUserOptions = {
 	advancedImport: false,
 	dockingMoveFixedElements: false,
 	quickMenuPreventLinksOnMiddleButton: false,
+	quickMenuPreventScrollOnMiddleButton: false,
 	toolBarMenuDisablePageClicks:false
 };
