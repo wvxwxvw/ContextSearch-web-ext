@@ -403,7 +403,7 @@ function contextMenuTitle(searchTerms, context) {
 	if (searchTerms.length > 18) 
 		searchTerms = searchTerms.substring(0,15) + "...";
 
-	// escape & because of shortcut keys
+	// escape &s because of shortcut keys
 	searchTerms = searchTerms.replace("&", "&&");
 	
 	let hotkey = getMenuHotkey(); 
