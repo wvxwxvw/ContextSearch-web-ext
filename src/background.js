@@ -1751,9 +1751,6 @@ async function folderSearch(info, allowFolders) {
 		for (let promise of promises)
 			await promise();
 		
-		// if ( !keepMenuOpen(e, true))
-			// closeMenuRequest();
-		
 		lastSearchHandler(node.id);
 	}
 

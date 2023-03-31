@@ -534,14 +534,14 @@ function disableScroll(el) {
 
 	if ( !userOptions.quickMenuPreventScrollOnMiddleButton ) return;
 
-	el.addEventListener('mousedown', disableDefaultHandler, {once:true});
-	el.dataset.csDisableScroll = true;
+	document.addEventListener('mousedown', disableDefaultHandler, {once:true});
+	//el.dataset.csDisableScroll = true;
 }
 function enableScroll() {
-	document.querySelectorAll('[data-cs-disable-scroll]').forEach(el => {
-		el.removeEventListener('auxclick', disableDefaultHandler);
-		delete el.dataset.csDisableScroll;
-	});
+	//document.querySelectorAll('[data-cs-disable-scroll]').forEach(el => {
+		document.removeEventListener('mousedown', disableDefaultHandler);
+	//	delete el.dataset.csDisableScroll;
+	//});
 }
 function disableContextMenu(el) {
 
@@ -586,7 +586,7 @@ document.addEventListener('mousedown', e => {
 
 		// if a non-default method is set, suppress the dcm
 		if ( userOptions.quickMenuMoveContextMenuMethod )
-			disableContextMenu(e.target);
+			disableContextMenu();
 	}
 
 	if ( e.which === 2 ) {
@@ -701,7 +701,8 @@ document.addEventListener('mousedown', e => {
 			setTimeout(() => openQuickMenu(e, e.target.innerText), 50);
 		}, {once: true});
 
-		if ( e.which === 3 && !userOptions.quickMenuAllowContextMenuNew ) document.addEventListener('contextmenu', _e => _e.preventDefault(), {once: true});
+		//if ( e.which === 3 && !userOptions.quickMenuAllowContextMenuNew ) document.addEventListener('contextmenu', _e => _e.preventDefault(), {once: true});
+		if ( e.which === 3 ) disableContextMenu();
 		return;
 	}
 
@@ -715,8 +716,10 @@ document.addEventListener('mousedown', e => {
 		
 		if ( e.shiftKey ) document.addEventListener('selectstart', _e => _e.preventDefault(), {once: true});
 
-		if ( e.which === 3 && !userOptions.quickMenuAllowContextMenuNew ) document.addEventListener('contextmenu', _e => _e.preventDefault(), {once: true});
+		//if ( e.which === 3 && !userOptions.quickMenuAllowContextMenuNew ) document.addEventListener('contextmenu', _e => _e.preventDefault(), {once: true});
 		
+		if ( e.which === 3 ) disableContextMenu();
+
 		// prevent links
 		document.addEventListener('click', _e => _e.preventDefault(), {once: true});
 
