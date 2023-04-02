@@ -1,3 +1,6 @@
+const i18n = browser.i18n.getMessage;
+const sendMessage = browser.runtime.sendMessage;
+
 const debounce = (callback, time, id) => {
   window.clearTimeout(window[id]);
   window[id] = window.setTimeout(callback, time);
@@ -471,12 +474,6 @@ function gen() {
 	return (Date.now().toString(36) + Math.random().toString(36).substr(2, 5)).toUpperCase();
 }
 
-
 const log = console.log;
-const debug = (...args) => {
-	if ( userOptions && userOptions.developerMode )
-		console.log("[contextsearch web-ext]", ...args)
-}
-const i18n = browser.i18n.getMessage;
-const sendMessage = browser.runtime.sendMessage;
+var debug = console.log.bind(window.console);
 
