@@ -2018,20 +2018,26 @@ function buildSearchEngineContainer() {
 			let selectedNodes = selectedRows.filter(r => !['siteSearchFolder', 'separator'].includes(r.node.type)).map( r => r.node);
 
 			let templates = selectedNodes.map( n => n.id);
+			
 
+			// check all templates for multi
 			for ( let i=templates.length-1;i>-1;i--) {
 
 				let n = findNode(userOptions.nodeTree, _n => _n.id === templates[i]);
 
 				if ( !n ) return;
 
-				try {
-					let ts = JSON.parse(n.template);
+				if ( isMultiSearchEngine(n) ) {
 					templates.splice(i,1,...ts);
-				} catch (error) {}
+				}
 			}
 
-			let names = selectedNodes.map( n => n.title);
+			// let names = selectedNodes.map( n => n.title);
+			let names = templates.map(t => {
+				let n = findNode(userOptions.nodeTree, _n => _n.id === t);
+
+				return n ? n.title : "???";
+			});
 
 			let newNode = addNewEngine(li.node, false);
 
@@ -2646,7 +2652,11 @@ function addMultisearchIcons(se, header) {
 
 		if ( Array.isArray(arr) ) {
 
-			let nodes = arr.map( id => findNode(userOptions.nodeTree, n => n.id === id));
+			let nodes = arr.map( id => findNode(userOptions.nodeTree, n => n.id === id) || {
+				type:"searchEngine",
+				icon:"icons/help.svg",
+				title:"???"
+			});
 
 			nodes.forEach( n => {
 				let _icon = document.createElement('img');
