@@ -1,5 +1,3 @@
-// context menu entries need to be tracked to be updated
-window.contextMenuMatchRegexMenus = [];
 window.contextMenuSearchTerms = "";
 window.tabTerms = [];
 
@@ -20,6 +18,7 @@ var firefoxSearchEngines = [];
 	await loadUserOptions();
 	debug("userOptions loaded. Updating objects");
 	userOptions = await updateUserOptionsVersion(userOptions);
+	if ( !userOptions.developerMode ) debug = function() {}
 	await browser.storage.local.set({"userOptions": userOptions});
 	await checkForOneClickEngines();
 	await buildContextMenu();
