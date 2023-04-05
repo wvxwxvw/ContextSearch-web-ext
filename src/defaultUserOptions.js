@@ -319,5 +319,6 @@ const defaultUserOptions = {
 	dockingMoveFixedElements: false,
 	quickMenuPreventLinksOnMiddleButton: false,
 	quickMenuPreventScrollOnMiddleButton: false,
-	toolBarMenuDisablePageClicks:false
+	toolBarMenuDisablePageClicks:false,
+	searchBarCloseAfterNewTab:false
 };
