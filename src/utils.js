@@ -474,6 +474,10 @@ function gen() {
 	return (Date.now().toString(36) + Math.random().toString(36).substr(2, 5)).toUpperCase();
 }
 
+function isDarkMode() {
+	return window.matchMedia && !!window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
 const log = console.log;
 var debug = console.log.bind(window.console);
 
