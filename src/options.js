@@ -499,6 +499,7 @@ document.addEventListener("DOMContentLoaded", async e => {
 	buildToolsBarIcons();
 	sortAdvancedOptions();
 	buildAdditionalSearchActionsTable();
+	setAutoDarkMode();
 
 	addDOMListeners();
 
@@ -1670,6 +1671,13 @@ $('#nightmode').addEventListener('click', () => {
 	$('#style_dark').disabled = !userOptions.nightMode;
 	saveOptions();
 });
+
+function setAutoDarkMode() {
+	if ( userOptions.autoTheme ) {
+		$('#style_dark').disabled = !isDarkMode();
+		$('#nightmode').style.display = 'none';
+	}
+}
 
 function buildThemes() {
 	$('#quickMenuTheme').innerHTML = null;
