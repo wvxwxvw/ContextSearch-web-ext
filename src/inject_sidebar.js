@@ -349,16 +349,6 @@ window.addEventListener('message', e => {
 		getIframe().docking.undock();
 });
 
-document.addEventListener("fullscreenchange", e => {
-	
-	let iframe = getIframe();
-	let ot = getOpeningTab();
-	
-	[iframe, ot].forEach( el => { 
-		if ( el ) el.classList.toggle('CS_hide', document.fullscreen);
-	});
-});
-
 document.addEventListener('click', e => {
 	if (e.target.closest("contextsearch-widgets")) return;
 	if ( !getIframe() ) return;
