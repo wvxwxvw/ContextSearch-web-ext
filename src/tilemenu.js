@@ -1146,6 +1146,9 @@ async function _quickMenuElementFromNodeTree( o ) {
 		return tiles;
 	}
 
+	if ( userOptions.removeConsecutiveSeparators )
+		removeConsecutiveSeparators(rootNode);
+
 	nodes.forEach( node => {
 
 		let tile = nodeToTile(node);

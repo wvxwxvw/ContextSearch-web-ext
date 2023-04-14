@@ -52,14 +52,8 @@ function filterContexts(root, context) {
 
 	});
 
-	// remove consecutive separators
-	traverseNodesDeep(filteredNodeTree, (n,p) => {
-		if ( !p ) return;
-
-		let index = p.children.indexOf(n);
-		if ( n.type === 'separator' && index && p.children[index - 1].type === 'separator' )
-			removeNode(n, p);
-	});
+	if ( userOptions.removeConsecutiveSeparators )
+		removeConsecutiveSeparators(filteredNodeTree);
 
 	return filteredNodeTree;
 }
